@@ -1,0 +1,107 @@
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+        <!--Start X-Panel-->
+        <div class="x_panel">
+            <div class="x_title">
+                <h2>The recorded sessions <small>Mouse Tracking</small></h2>
+                <ul class="nav navbar-right panel_toolbox">
+                    <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a href="#">Settings 1</a>
+                            </li>
+                            <li><a href="#">Settings 2</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li><a class="close-link"><i class="fa fa-close"></i></a>
+                    </li>
+                </ul>
+                <div class="clearfix"></div>
+            </div>
+            <div class="x_content">
+                
+                <table id="example" class="display" cellspacing="0" width="100%">
+                    <thead>
+                        <tr>
+                            <th>App Key</th>
+                            <th>Session id</th>
+                            <th>From page</th>
+                            <th>Start date</th>
+                            <th>Duration (min)</th>
+                            <th> </th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th>App Key</th>
+                            <th>Session id</th>
+                            <th>From page</th>
+                            <th>Start date</th>
+                            <th>Duration (min)</th>
+                            <th> </th>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+            </div>
+        </div>     
+        <!--End X-Panel-->
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('#example').DataTable({
+            "ajax": {
+                "url": "/mouse-tracker/get-sessions-list",
+                "type": "POST"
+            },
+            "columns": [
+                {"data": "app_key"},
+                {"data": "session_id"},
+                {
+                    "orderable": true,
+                    "data": "session_started_at",
+                    "render": function (data, type, row) {
+                        return row.origin + row.tracking_data[0].pathname
+                    },
+                },
+                {
+                    "orderable": true,
+                    "data": "session_started_at",
+                    "render": function (data, type, row) {
+                        var date = new Date(parseFloat(data));
+                        return ('0' + date.getDate()).slice(-2) + '/' + ('0' + (date.getMonth() + 1)).slice(-2) + '/' + date.getFullYear() + '&nbsp;&nbsp;&nbsp;' + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2)
+                    },
+                },
+                {
+                    "orderable": true,
+                    "data": "session_started_at",
+                    "render": function (data, type, row) {
+                        var end_time = row.tracking_data[row.tracking_data.length-1].time
+                        var end_date = new Date(end_time);
+                        
+                        return ('0' + end_date.getHours()).slice(-2) + ':' 
+                        + ('0' + end_date.getMinutes()).slice(-2) + ':' 
+                        + ('0' + end_date.getSeconds()).slice(-2);
+                    },
+                },
+                {
+                    "orderable": false,
+                    "data": "id",
+                    "render": function (data, type, row) {
+                        var url = "/mouse-tracker/display-tracking/" + data
+                        return '<button class="btn btn-default btn-rounded btn-condensed btn-sm edit pull-right" onclick="window.location=\'' + url + '\'"><span class="fa fa-pencil"></span></button>';
+
+                    },
+                }
+
+            ],
+            ordering: true,
+            order:[[3, "desc"]]
+        });
+    });
+
+</script> 
