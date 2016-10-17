@@ -45,13 +45,19 @@ module.exports.routes = {
      *                                                                          *
      ***************************************************************************/
 
-     'get /': 'AdminController.displayDashboard',
-     'post /get-track-data': 'TrackerController.getTrackData',
-     
-     'get /mouse-tracker/list' : 'TrackerController.displayTrackingSessionList',
-     'post /mouse-tracker/get-sessions-list' : 'TrackerController.getSessionsList',
-     
-     'get /mouse-tracker/display-tracking/:tracker_id' : 'TrackerController.displayTracking',
-     'post /mouse-tracker/display-tracking/:tracker_id' : 'TrackerController.getTrackData'
+    'get /clientscr/:client_key/trck': 'ClientController.getClientTrackingScript',
+    
+    
+    
+    
+
+    'get /': 'AdminController.displayDashboard',
+    'post /get-track-data': 'TrackerController.getTrackData',
+    
+    'get /mouse-tracker/list': 'TrackerController.displayTrackingSessionList',
+    'post /mouse-tracker/get-sessions-list': 'TrackerController.getSessionsList',
+    
+    'get /mouse-tracker/display-tracking/:tracker_id': 'TrackerController.displayTracking',
+    'post /mouse-tracker/display-tracking/:tracker_id': 'TrackerController.getTrackData'
 
 };

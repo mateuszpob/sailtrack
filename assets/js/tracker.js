@@ -14,6 +14,8 @@ var Tracker = function () {
     this.tracking_patch = []; // przebyta podczas jednej sesji ścieżka (urle podstron)
     this.counter = 1; // licznik krokow w rysowaniu ścieżki
     this.tracking_drav_interval = null; // interval do rysowania sciezki
+    this.timeline_interval = null; // interval do lini czasu
+    this.timeline_is_paused = false; // do zatrzymywania lini czasu (np przy przechodzeniu między podstronami sesji)
     this.go_step_locker = false; // blokada przycisków go_step, jak jeden step sie laduje to zeby nie klikac, bo i na huj
     this.redirect_steps = [];
 
@@ -46,12 +48,13 @@ Tracker.prototype.drawTo = function () {
                     inst.current_background_url = one_step.pathname;
                     
                     clearInterval(inst.tracking_drav_interval);
-                    
+                    inst.timeline_is_paused = true; // zapalzuj timeline
                     setTimeout(function(){
                         inst.setPathStepToActive(one_step.pathname); // zaznacz aktualną podstronę
                         inst.clearCanvas();
                         inst.changeTrackedPage();
                         setTimeout(function(){
+                            inst.timeline_is_paused = false; // wystartuj ponownie timeline
                             inst.ctx.beginPath();
                             inst.ctx.lineTo(one_step.x, one_step.y);
                             inst.ctx.stroke();
@@ -79,8 +82,6 @@ Tracker.prototype.drawTo = function () {
 };
 
 Tracker.prototype.displayTrackingMap = function () {
-    
-
     // Skalowanie canvasa i  backgrounda
     this.canvas.width = 1920;
     this.canvas.height = 1080;
@@ -100,34 +101,30 @@ Tracker.prototype.displayTrackingMap = function () {
     
     // ustaw odpowiednią stronę na iframe, początkową
     this.changeTrackedPage();
-    
+    // dopiero ta funkcja wszystko rysuje
     this.drawTo();
-
-
 };
 
 Tracker.prototype.runTimeline = function () {
     var tracker_inst = this;
     var timeline_width = this.mouse_timeline.offsetWidth - 6;  
-//    var end_time = this.trackData.tracking_data[this.tracking_data_legth - 1].time;
     var end_time = 0;
     // oblicz czas wszystkich stepow
     this.redirect_steps.forEach(function(o, i, a) {
-        console.log(o, tracker_inst.trackData.tracking_data)
         end_time += tracker_inst.trackData.tracking_data[o].time;
     });
-    
-    
-    console.log('END TIME: '+end_time)
     
     var pos = 0;
     
     var step_time = end_time/timeline_width;
-    var timeline_interval = setInterval(function(){
-        tracker_inst.mouse_timeline_ptr.style.left = pos + 'px';
-        pos++;
+    tracker_inst.timeline_interval = setInterval(function(){
+        // przechodzenie miedzy podstronami pałzuje
+        if(!tracker_inst.timeline_is_paused){
+            tracker_inst.mouse_timeline_ptr.style.left = pos + 'px';
+            pos++;
+        }
         if(pos >= timeline_width){
-            clearInterval(timeline_interval);
+            clearInterval(tracker_inst.timeline_interval);
         }
     }, step_time);
     
@@ -213,7 +210,6 @@ Tracker.prototype.setPathStepToActive = function(url) {
 };
 /**
  * Przejdz do konkretnego kroku
- * @param {integer} nr
  */
 Tracker.prototype.goToStep = function(o) {
     clearInterval(this.tracking_drav_interval);
