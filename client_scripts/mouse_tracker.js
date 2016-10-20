@@ -129,7 +129,7 @@ var init = function(){
 
 
     document.addEventListener("click", function(e){
-
+//e.preventDefault();
         var one = document.body.outerHTML;
         var sec = null;
 
@@ -141,7 +141,7 @@ var init = function(){
                 console.log(ddd)
                 inst.sendBackgroundData(ddd)
             }else{
-                console.log('pierdole Nie Robie')
+//                console.log('pierdole Nie Robie')
             }
         }, 200);
 
@@ -155,13 +155,14 @@ var init = function(){
 //            
 //        });    
 //    });
-//
-////    var target = document.querySelectorAll('.welcome-featured-item')[0]
-////        var target = document;//.getElementsByTagName('*')[0];
-////        observer.observe(target, { attributes : true, attributeFilter : ['style', 'class'] });
-//    
-//    
+
+//    var target = document.querySelectorAll('.welcome-featured-item')[0]
+//        var target = document;//.getElementsByTagName('*')[0];
+//        observer.observe(document, { attributes : true, attributeFilter : ['style', 'class'] });
+    
+    
 //    [].slice.call(document.getElementsByTagName('*')).forEach(function(o,i,a){
+//        console.log(o)
 //        observer.observe(o, { attributes : true, attributeFilter : ['style', 'class'] });
 //    })    
 

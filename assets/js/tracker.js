@@ -42,7 +42,14 @@ Tracker.prototype.drawTo = function () {
         inst.tracking_drav_interval = setInterval(function(){
             if(inst.counter+1 < inst.tracking_data_legth){
                 var one_step = inst.trackData.tracking_data[inst.counter];
-                
+                var temp_batckgorund = null;
+                if(one_step.type === 'background'){
+                                    console.log('PATHNAME: 5555555555555555555 ')
+                    temp_batckgorund = one_step.background;
+                    // przeskocz krok z backgroundem, po jego ustawieniu
+                    inst.counter++;
+                    one_step = inst.trackData.tracking_data[inst.counter];
+                }
 //                switch(one_step.type){
 //                    case 'move':
 
@@ -50,24 +57,19 @@ Tracker.prototype.drawTo = function () {
                         // Sprawdz czy strona się nie zmieniła, jeśli tak, 
                         // ustaw odpowiedni adres w iframe
                         if(one_step.pathname != inst.trackData.tracking_data[inst.counter-1].pathname){
-                            var temp_batckgorund = null;
+                            
                             inst.current_background_url = one_step.pathname;
-                            if(one_step.type === 'background'){
-//                                console.log('PATHNAME:  '+one_step.background)
-                                temp_batckgorund = one_step.background;
-                                // przeskocz krok z backgroundem, po jego ustawieniu
-                                inst.counter++;
-                                one_step = inst.trackData.tracking_data[inst.counter];
-                            }
+                            
                             
                             
                             clearInterval(inst.tracking_drav_interval);
                             inst.timeline_is_paused = true; // zapalzuj timeline
                             setTimeout(function(){
-                                inst.setPathStepToActive(one_step.pathname); // zaznacz aktualną podstronę
+                                //inst.setPathStepToActive(one_step.pathname); // zaznacz aktualną podstronę
                                 inst.clearCanvas();
                                 // podmnien html'a z backgroundem
-                                inst.changeTrackedPage(temp_batckgorund);
+                                if(temp_batckgorund)
+                                    inst.changeTrackedPage(temp_batckgorund);
                                 //inst.changeTrackedPage();
                                 setTimeout(function(){
                                     inst.timeline_is_paused = false; // wystartuj ponownie timeline
@@ -80,6 +82,8 @@ Tracker.prototype.drawTo = function () {
                                 }, 1000);
                             }, 500);
                         }else{
+                            if(temp_batckgorund)
+                                    inst.changeTrackedPage(temp_batckgorund);
                             inst.ctx.lineTo(one_step.x, one_step.y);
                             inst.ctx.stroke();
                             inst.counter++;
