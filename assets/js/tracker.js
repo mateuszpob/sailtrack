@@ -3,6 +3,7 @@ var Tracker = function () {
     this.flag = false;
     this.prevX = null;
     this.prevY = null;
+    this.background_light = false; // czy renderowac zdarzenai z htmla (true), czy na iframe z aktualna strona (false)
     this.user_screen_width = 1920;
     this.number_of_data_portion = 0;
     this.tracking_scale = 0.825; // skala canvasa i backgroundu
@@ -22,6 +23,7 @@ var Tracker = function () {
     this.canvas = document.getElementById('tracker-canvas');
     this.background = document.getElementById('tracker-background');
     this.ctx = this.canvas.getContext("2d");
+    this.background_img = document.getElementById('bckgr');
 
     this.mouse_timeline = document.getElementById('mouse-timeline');
     this.mouse_timeline_ptr = document.getElementById('mouse-timeline-pointer');
@@ -40,36 +42,59 @@ Tracker.prototype.drawTo = function () {
         inst.tracking_drav_interval = setInterval(function(){
             if(inst.counter+1 < inst.tracking_data_legth){
                 var one_step = inst.trackData.tracking_data[inst.counter];
-                // console.log(one_step.x, one_step.y, Math.floor(one_step.time/1000))
-                // Sprawdz czy strona się nie zmieniła, jeśli tak, 
-                // ustaw odpowiedni adres w iframe
-                if(one_step.pathname != inst.current_background_url){
-                    
-                    inst.current_background_url = one_step.pathname;
-                    
-                    clearInterval(inst.tracking_drav_interval);
-                    inst.timeline_is_paused = true; // zapalzuj timeline
-                    setTimeout(function(){
-                        inst.setPathStepToActive(one_step.pathname); // zaznacz aktualną podstronę
-                        inst.clearCanvas();
-                        inst.changeTrackedPage();
-                        setTimeout(function(){
-                            inst.timeline_is_paused = false; // wystartuj ponownie timeline
-                            inst.ctx.beginPath();
+                
+//                switch(one_step.type){
+//                    case 'move':
+
+                         console.log(one_step.x, one_step.y, Math.floor(one_step.time/1000))
+                        // Sprawdz czy strona się nie zmieniła, jeśli tak, 
+                        // ustaw odpowiedni adres w iframe
+                        if(one_step.pathname != inst.trackData.tracking_data[inst.counter-1].pathname){
+                            var temp_batckgorund = null;
+                            inst.current_background_url = one_step.pathname;
+                            if(one_step.type === 'background'){
+//                                console.log('PATHNAME:  '+one_step.background)
+                                temp_batckgorund = one_step.background;
+                                // przeskocz krok z backgroundem, po jego ustawieniu
+                                inst.counter++;
+                                one_step = inst.trackData.tracking_data[inst.counter];
+                            }
+                            
+                            
+                            clearInterval(inst.tracking_drav_interval);
+                            inst.timeline_is_paused = true; // zapalzuj timeline
+                            setTimeout(function(){
+                                inst.setPathStepToActive(one_step.pathname); // zaznacz aktualną podstronę
+                                inst.clearCanvas();
+                                // podmnien html'a z backgroundem
+                                inst.changeTrackedPage(temp_batckgorund);
+                                //inst.changeTrackedPage();
+                                setTimeout(function(){
+                                    inst.timeline_is_paused = false; // wystartuj ponownie timeline
+                                    inst.ctx.beginPath();
+                                    inst.ctx.lineTo(one_step.x, one_step.y);
+                                    inst.ctx.stroke();
+                                    inst.counter++;
+                                    inst.tracking_drav_interval = window.clearInterval(inst.tracking_drav_interval);
+                                    inv();
+                                }, 1000);
+                            }, 500);
+                        }else{
                             inst.ctx.lineTo(one_step.x, one_step.y);
                             inst.ctx.stroke();
                             inst.counter++;
                             inst.tracking_drav_interval = window.clearInterval(inst.tracking_drav_interval);
                             inv();
-                        }, 1000);
-                    }, 500);
-                }else{
-                    inst.ctx.lineTo(one_step.x, one_step.y);
-                    inst.ctx.stroke();
-                    inst.counter++;
-                    inst.tracking_drav_interval = window.clearInterval(inst.tracking_drav_interval);
-                    inv();
-                }
+                        }
+//                        break;
+//                    case 'background':
+//                        console.log('BCKGR')
+//                        if(one_step.background !== null && one_step.background !== 'undefined')
+//                            inst.background.innerHtml = one_step.background;
+//                        inst.counter++;
+//                        inv();
+//                        break;
+//                }
             }else{
                 inst.animation_locked = true;
                 clearInterval(inst.tracking_drav_interval);
@@ -82,25 +107,32 @@ Tracker.prototype.drawTo = function () {
 };
 
 Tracker.prototype.displayTrackingMap = function () {
-    // Skalowanie canvasa i  backgrounda
+    // Skalowanie canvasa i  backgrounda 
     this.canvas.width = 1920;
     this.canvas.height = 1080;
     this.canvas.style.transform = 'scale(' + this.tracking_scale + ')';
     this.canvas.style.transformOrigin = '0 0';
+    
     this.background.width = 1920;
     this.background.height = 1080;
     this.background.style.transform = 'scale(' + this.tracking_scale + ')';
     this.background.style.transformOrigin = '0 0';
+    
+    if(!this.background_light)
+        this.background = this.background.contentWindow || ( this.background.contentDocument.document || this.background.contentDocument);
+    
+       
     var height = this.canvas.height * this.tracking_scale + 10;
     this.canvas.insertAdjacentHTML('afterend', '<div style="width:100%;height:' + height + 'px"></div>');
-
+    
+    // ustaw pierwsza strone
     this.current_background_url = this.trackData.tracking_data[0].pathname
+    this.changeTrackedPage(this.trackData.tracking_data[0].background);
+    
     this.prevX = this.trackData.tracking_data[0].x;
     this.prevY = this.trackData.tracking_data[0].y;
     this.last_time = this.trackData.tracking_data[0].time;
     
-    // ustaw odpowiednią stronę na iframe, początkową
-    this.changeTrackedPage();
     // dopiero ta funkcja wszystko rysuje
     this.drawTo();
 };
@@ -155,8 +187,15 @@ Tracker.prototype.runTimeline = function () {
 /**
  * Zmienia url w iframe
  */
-Tracker.prototype.changeTrackedPage = function() {
-    this.background.src = this.trackData.origin + this.current_background_url;
+Tracker.prototype.changeTrackedPage = function(html) {
+    if(this.background_light){
+        this.background.src = this.trackData.origin + this.current_background_url;
+    }else{
+        this.background.document.open();
+        this.background.document.write(html);
+        this.background.document.close();
+    }
+    
 }
 /**
  * Czyści canvas

@@ -1,4 +1,3 @@
-
 var TrackerClient = function() {
     this.move = 1;
     this.rast = 2;
@@ -13,6 +12,8 @@ var TrackerClient = function() {
     this.session_exp_days = 1;
     this.socket = null;
 };
+
+
 
 TrackerClient.prototype.onmousemoveM = function(e){
     var dt = new Date();
@@ -47,6 +48,27 @@ TrackerClient.prototype.sendData = function(){
         }
         this.socket.emit('points_data', points_data);
         this.point_stack = [];
+    }
+};
+
+TrackerClient.prototype.sendBackgroundData = function(bckgr){
+    if(true){
+        var time_from_start = Date.now() - this.time_start;
+        var data = {
+            session_id: this.session_id,
+            app_key: 'hwdpjp100%',
+            session_started_at: this.time_start,
+            width: window.innerWidth, 
+            height: window.innerHeight,
+            origin: window.location.origin,
+            tracking_data: {
+                type: 'background',
+                pathname: window.location.pathname,
+                time:time_from_start,
+                background: bckgr
+            }
+        }
+        this.socket.emit('points_data', data);
     }
 };
 
@@ -85,24 +107,63 @@ TrackerClient.prototype.getSessionId = function(){
 
 var init = function(){
     console.log('Tracker Init')
+    
     var inst = new TrackerClient();
     var body = document.getElementsByTagName("BODY")[0];
     inst.time_start = Date.now();
     inst.socket = io.connect('http://127.0.0.1:1337');
     inst.session_id = inst.getSessionId();
-   
-    body.addEventListener("mousemove", function(e){
+    
+    var ddd = document.documentElement.outerHTML;//.replace(/(\r\n|\n|\r)/gm,"");
+    inst.sendBackgroundData(ddd)
+    
+    
+    document.addEventListener("mousemove", function(e){
         inst.onmousemoveM(e);
     });
     
-    window.addEventListener("beforeunload", function (event) {
-        // to i tak nie zadziała
+
+    body.addEventListener("mouseout", function (event) {
         inst.sendData();
     });
 
-    window.addEventListener("mouseout", function (event) { console.log('SPIERDOLILA')
-        inst.sendData();
+
+    document.addEventListener("click", function(e){
+
+        var one = document.body.outerHTML;
+        var sec = null;
+
+        setTimeout(function(){
+            sec = document.body.innerHTML;
+            if(sec != one){
+                console.log('robie SreenShot')
+                ddd = document.documentElement.outerHTML;
+                console.log(ddd)
+                inst.sendBackgroundData(ddd)
+            }else{
+                console.log('pierdole Nie Robie')
+            }
+        }, 200);
+
     });
+    
+    
+    
+//    var observer = new MutationObserver(function(mutations) {
+//        mutations.forEach(function(mutationRecord) {
+//            console.log(mutationRecord);
+//            
+//        });    
+//    });
+//
+////    var target = document.querySelectorAll('.welcome-featured-item')[0]
+////        var target = document;//.getElementsByTagName('*')[0];
+////        observer.observe(target, { attributes : true, attributeFilter : ['style', 'class'] });
+//    
+//    
+//    [].slice.call(document.getElementsByTagName('*')).forEach(function(o,i,a){
+//        observer.observe(o, { attributes : true, attributeFilter : ['style', 'class'] });
+//    })    
 
 };
 
@@ -111,3 +172,4 @@ var init = function(){
 
 
 document.addEventListener('DOMContentLoaded', init, false);
+

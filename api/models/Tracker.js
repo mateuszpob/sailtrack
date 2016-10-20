@@ -23,21 +23,70 @@ module.exports = {
 //            session_started_at: track_data.session_started_at
         }).exec(function (err, obj) {
             
+            console.log('huj huj hu hu j')
+            
             if(obj !== undefined){
                 
             }
             
             
             if(obj !== undefined){
-                obj.tracking_data = obj.tracking_data.concat(track_data.tracking_data);
+                var tracking_array = null;
+                if(Array.isArray(track_data.tracking_data)){
+                    tracking_array = track_data.tracking_data;
+                }else{
+                    tracking_array = [];
+                    tracking_array.push(track_data.tracking_data)
+                }
+                
+                if(tracking_array[0].type == 'background'){
+                    tracking_array[0].background = tracking_array[0].background
+                            .replace(/(\r\n|\n|\r)/gm,"")
+                            .replace(/src="\/\//g,'src="_sailtrack/')
+                            .replace(/href="\/\//g,'href="_sailtrack/')
+
+                            .replace(/src="\//g,'src="http://127.0.0.1:8000/')
+                            .replace(/href="\//g,'href="http://127.0.0.1:8000/')
+
+                            .replace(/src="_sailtrack\//g,'src="//')
+                            .replace(/href="_sailtrack\//g,'href="//')
+                    
+                
+                            .replace(/http:\/\/127.0.0.1:1337\/clientscr/g,'');
+                }
+//                console.log(tracking_array[0].background)
+                console.log(tracking_array[0].type);
+                obj.tracking_data = obj.tracking_data.concat(tracking_array);
                 obj.save();
             }else{
+                var tracking_array = null;
+                if(Array.isArray(track_data.tracking_data)){
+                    tracking_array = track_data.tracking_data;
+                }else{
+                    tracking_array = [];
+                    tracking_array.push(track_data.tracking_data)
+                }
+                
+                if(tracking_array[0].type == 'background'){
+                    tracking_array[0].background = tracking_array[0].background
+                            .replace(/(\r\n|\n|\r)/gm,"")
+                            .replace(/src="\/\//g,'src="_sailtrack/')
+                            .replace(/href="\/\//g,'href="_sailtrack/')
+
+                            .replace(/src="\//g,'src="http://127.0.0.1:8000/')
+                            .replace(/href="\//g,'href="http://127.0.0.1:8000/')
+
+                            .replace(/src="_sailtrack\//g,'src="//')
+                            .replace(/href="_sailtrack\//g,'href="//');
+                    
+                }
+                
                 Tracker.create({
                     session_id: track_data.session_id,
                     app_key: track_data.app_key,
                     origin: track_data.origin,
                     session_started_at: track_data.session_started_at,
-                    tracking_data: track_data.tracking_data
+                    tracking_data: tracking_array
                 }).exec(function createCB(err, created) {
                     console.log(obj)
                     console.log('------------------------------------------')
