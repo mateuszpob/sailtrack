@@ -7,6 +7,9 @@ var TrackerClient = function() {
     this.socket;
     this.time_start;
     this.session_id;
+    
+    this.scroll_stack = [];
+    this.scroll_stack_interval = null;
 
     this.cookie_name = 'tracker_sid';
     this.session_exp_days = 1;
@@ -33,6 +36,21 @@ TrackerClient.prototype.onmousemoveM = function(e){
         this.sendData();
         this.move = 1;
     }
+};
+
+TrackerClient.prototype.onscrollme = function() {
+    var inst = this;
+    var time_from_start = Date.now() - this.time_start;
+    this.scroll_stack.push({top: document.body.scrollTop, time: time_from_start});
+    clearTimeout(this.scroll_stack_interval);
+    
+    this.scroll_stack_interval = setTimeout(function(){
+        var tmp_stack = inst.scroll_stack;
+        inst.scroll_stack = [];
+        console.log(tmp_stack)
+        // inst.sendEventsData('scroll', tmp_stack)
+    },100);
+    
 };
 
 TrackerClient.prototype.sendData = function(){
@@ -66,6 +84,28 @@ TrackerClient.prototype.sendBackgroundData = function(bckgr){
                 pathname: window.location.pathname,
                 time:time_from_start,
                 background: bckgr
+            }
+        }
+        this.socket.emit('points_data', data);
+    }
+};
+
+TrackerClient.prototype.sendEventsData = function(event_type, event_data){
+    if(true){
+        var time_from_start = Date.now() - this.time_start;
+        var data = {
+            session_id: this.session_id,
+            app_key: 'hwdpjp100%',
+            session_started_at: this.time_start,
+            width: window.innerWidth, 
+            height: window.innerHeight,
+            origin: window.location.origin,
+            tracking_data: {
+                type: 'event',
+                event_type: event_type,
+                pathname: window.location.pathname,
+                time:time_from_start,
+                event_data: event_data
             }
         }
         this.socket.emit('points_data', data);
@@ -114,39 +154,58 @@ var init = function(){
     inst.socket = io.connect('http://127.0.0.1:1337');
     inst.session_id = inst.getSessionId();
     
-    var ddd = document.documentElement.outerHTML;//.replace(/(\r\n|\n|\r)/gm,"");
-    inst.sendBackgroundData(ddd)
-    
+    var last_html = document.documentElement.outerHTML;
+    inst.sendBackgroundData(last_html)
     
     document.addEventListener("mousemove", function(e){
+        last_html = document.body.outerHTML;
         inst.onmousemoveM(e);
     });
     
-
-    body.addEventListener("mouseout", function (event) {
-        inst.sendData();
-    });
-
-
-    document.addEventListener("click", function(e){
-//e.preventDefault();
-        var one = document.body.outerHTML;
-        var sec = null;
-
-        setTimeout(function(){
-            sec = document.body.innerHTML;
-            if(sec != one){
-                console.log('robie SreenShot')
-                ddd = document.documentElement.outerHTML;
-                console.log(ddd)
-                inst.sendBackgroundData(ddd)
-            }else{
-//                console.log('pierdole Nie Robie')
-            }
-        }, 200);
-
+    document.addEventListener('scroll', function(e){
+        inst.onscrollme(e);
+       
     });
     
+    
+    
+    
+
+//    body.addEventListener("mouseout", function (event) {
+//        inst.sendData();
+//    });
+//
+//
+//    document.addEventListener("click", function(e){
+////e.preventDefault();
+//        last_html = document.body.outerHTML;
+//        var sec = null;
+//
+//        setTimeout(function(){
+//            sec = document.body.innerHTML;
+//            if(sec != last_html){
+//                console.log('robie SreenShot')
+//                last_html = document.documentElement.outerHTML;
+////                console.log(last_html)
+//                inst.sendBackgroundData(last_html)
+//            }else{
+//                
+//            }
+//        }, 200);
+//
+//    });
+    
+//    document.addEventListener('scroll', function(){
+//        sec = document.body.innerHTML;
+//        if(sec != last_html){
+//            console.log('robie SreenShot')
+//            last_html = document.documentElement.outerHTML;
+//            console.log(last_html)
+//            inst.sendBackgroundData(last_html)
+//        }else{
+//
+//        }
+//    });
     
     
 //    var observer = new MutationObserver(function(mutations) {
@@ -160,17 +219,31 @@ var init = function(){
 //        var target = document;//.getElementsByTagName('*')[0];
 //        observer.observe(document, { attributes : true, attributeFilter : ['style', 'class'] });
     
-    
 //    [].slice.call(document.getElementsByTagName('*')).forEach(function(o,i,a){
 //        console.log(o)
 //        observer.observe(o, { attributes : true, attributeFilter : ['style', 'class'] });
 //    })    
 
+//    [].slice.call(document.getElementsByTagName('*')).forEach(function(o,i,a){
+//        
+//    });
+
+    
+
+
+//    document.addEventListener('click', function(){
+//        var sec = document.body.outerHTML;
+//        if(sec != last_html){
+//            console.log('click') 
+//        }
+//    });
+//    document.addEventListener('mouseover', function(){
+//        var sec = document.body.outerHTML;
+//        if(sec != last_html){
+//            console.log('mouseover') 
+//        }
+//    });
 };
-
-
-
-
 
 document.addEventListener('DOMContentLoaded', init, false);
 
