@@ -20,18 +20,22 @@ var Tracker = function () {
     this.go_step_locker = false; // blokada przycisków go_step, jak jeden step sie laduje to zeby nie klikac, bo i na huj
     this.redirect_steps = [];
 
-    this.canvas = document.getElementById('tracker-canvas');
-    this.background = document.getElementById('tracker-background');
-    this.ctx = this.canvas.getContext("2d");
-    this.background_img = document.getElementById('bckgr');
+    this.canvas = null; //document.getElementById('tracker-canvas');
+    this.background = null; //document.getElementById('tracker-background');
+    this.background_content = null; //this.background.contentWindow || ( this.background.contentDocument.document || this.background.contentDocument);
+    //this.ctx = this.canvas.getContext("2d");
 
     this.mouse_timeline = document.getElementById('mouse-timeline');
     this.mouse_timeline_ptr = document.getElementById('mouse-timeline-pointer');
     
+    this.events_counter = 1;
+    this.events_interval = null;
+    this.events_data_legth = 0;
+    
     this.tracking_path = document.getElementById('tracking-path-wrapper');
 };
 
-Tracker.prototype.drawTo = function () {
+Tracker.prototype.trackingDrawStart = function () {
 
     this.ctx.beginPath();
     this.ctx.strokeStyle = "black";
@@ -44,7 +48,6 @@ Tracker.prototype.drawTo = function () {
                 var one_step = inst.trackData.tracking_data[inst.counter];
                 var temp_batckgorund = null;
                 if(one_step.type === 'background'){
-                                    console.log('PATHNAME: 5555555555555555555 ')
                     temp_batckgorund = one_step.background;
                     // przeskocz krok z backgroundem, po jego ustawieniu
                     inst.counter++;
@@ -53,7 +56,7 @@ Tracker.prototype.drawTo = function () {
 //                switch(one_step.type){
 //                    case 'move':
 
-                         console.log(one_step.x, one_step.y, Math.floor(one_step.time/1000))
+                         //console.log(one_step.x, one_step.y, Math.floor(one_step.time/1000))
                         // Sprawdz czy strona się nie zmieniła, jeśli tak, 
                         // ustaw odpowiedni adres w iframe
                         if(one_step.pathname != inst.trackData.tracking_data[inst.counter-1].pathname){
@@ -110,36 +113,33 @@ Tracker.prototype.drawTo = function () {
     
 };
 
-Tracker.prototype.displayTrackingMap = function () {
-    // Skalowanie canvasa i  backgrounda 
-    this.canvas.width = 1920;
-    this.canvas.height = 1080;
-    this.canvas.style.transform = 'scale(' + this.tracking_scale + ')';
-    this.canvas.style.transformOrigin = '0 0';
-    
-    this.background.width = 1920;
-    this.background.height = 1080;
-    this.background.style.transform = 'scale(' + this.tracking_scale + ')';
-    this.background.style.transformOrigin = '0 0';
-    
-    if(!this.background_light)
-        this.background = this.background.contentWindow || ( this.background.contentDocument.document || this.background.contentDocument);
-    
-       
-    var height = this.canvas.height * this.tracking_scale + 10;
-    this.canvas.insertAdjacentHTML('afterend', '<div style="width:100%;height:' + height + 'px"></div>');
-    
-    // ustaw pierwsza strone
-    this.current_background_url = this.trackData.tracking_data[0].pathname
-    this.changeTrackedPage(this.trackData.tracking_data[0].background);
-    
-    this.prevX = this.trackData.tracking_data[0].x;
-    this.prevY = this.trackData.tracking_data[0].y;
-    this.last_time = this.trackData.tracking_data[0].time;
-    
-    // dopiero ta funkcja wszystko rysuje
-    this.drawTo();
+Tracker.prototype.emitScrollEvents = function () {
+    var inst = this;
+//    console.log('Start Emit Events!')
+    function inv() {
+        inst.events_interval = setInterval(function(){
+            if(inst.events_counter+1 < inst.events_data_legth){
+                var one_step = inst.trackData.events_data[inst.events_counter];
+                //console.log('SCROLL: '+one_step.stop+',   time: '+one_step.time)
+                
+                var b = document.getElementById('tracker-background').contentWindow.document.getElementsByTagName('body')[0];
+                b.scrollTop = one_step.stop;
+                
+                
+//                inst.background.contentWindow.scrollTo(one_step.stop, 0)
+              
+              
+                inst.events_counter++;
+                    inst.events_interval = window.clearInterval(inst.events_interval);
+                    inv();
+            }else{
+                inst.events_counter++;
+            }
+        }, (inst.trackData.events_data[inst.events_counter].time - inst.trackData.events_data[inst.events_counter-1].time));
+    }
+    inv();
 };
+
 
 Tracker.prototype.runTimeline = function () {
     var tracker_inst = this;
@@ -188,25 +188,13 @@ Tracker.prototype.runTimeline = function () {
     }
 
 };
-/**
- * Zmienia url w iframe
- */
-Tracker.prototype.changeTrackedPage = function(html) {
-    if(this.background_light){
-        this.background.src = this.trackData.origin + this.current_background_url;
-    }else{
-        this.background.document.open();
-        this.background.document.write(html);
-        this.background.document.close();
-    }
-    
-}
+
 /**
  * Czyści canvas
  */
 Tracker.prototype.clearCanvas = function() {
     this.ctx.clearRect(0, 0, 1920, 1080);
-    console.log('CLEAR CANVAS')
+    //console.log('CLEAR CANVAS')
 }
 /**
  * Wyswietla wszystkie stronu jakie odwiedził user podczas danej sesji
@@ -266,9 +254,117 @@ Tracker.prototype.goToStep = function(o) {
         this.prevY = this.trackData.tracking_data[nr].y;
         this.drawTo();
     }
-    console.log('GOSTEPLOCKER')
+    //console.log('GOSTEPLOCKER')
     this.go_step_locker = false;
 };
+
+
+/**
+ * Zmienia url w iframe
+ */
+Tracker.prototype.changeTrackedPage = function(html) {
+//    if(this.background_light){
+//        this.background_content.src = this.trackData.origin + this.current_background_url;
+//    }else{
+//        this.background_content.document.open();
+//        this.background_content.document.write(html);
+//        this.background_content.document.close();
+//    }
+    
+}
+/*
+ * Doklej canvas do srodka iframe
+ */
+Tracker.prototype.initCanvasAndBackground = function () {
+    var inst = this;
+    this.current_background_url = this.trackData.tracking_data[0].pathname;
+    // this.changeTrackedPage(this.trackData.tracking_data[0].background)
+    console.log('Start canvas elo elo')
+    
+    this.background = window.frames['tracker-background'];
+    this.background.document.open();
+    this.background.document.write(this.trackData.tracking_data[0].background);
+    this.background.document.close();
+    
+    this.background.onload = function() {
+        
+        inst.canvas = inst.background.document.createElement('canvas');
+        inst.canvas.id = 'tracker-canvas';
+        inst.canvas.style.position = 'absolute';
+        inst.canvas.style.top = 0;
+        inst.ctx = inst.canvas.getContext("2d");
+        var x = inst.background.document.body.appendChild(inst.canvas);
+        console.log(x)
+        inst.initTrackingMap();
+        
+    };
+    
+    /*
+    this.background = document.createElement('iframe');
+    //this.background.src = 'http://127.0.0.1:1337/mouse-tracker/background/580b4c1411fbf084085471ab';
+    this.background.id = "tracker-background";
+
+    document.getElementById("tracking-player").appendChild(inst.background); 
+        
+    inst.background_content = inst.background.contentDocument || inst.background.contentWindow.document;
+        
+        inst.background_content.write(inst.trackData.tracking_data[0].background);    
+        
+        console.log('Start canvas load')
+    this.background.onload = function() {
+        console.log('Start canvas load')
+        
+        console.log(inst.background_content);
+        
+        
+        inst.canvas = inst.background_content.createElement('canvas');
+        inst.canvas.id = 'tracker-canvas';
+        inst.canvas.style.position = 'absolute';
+        inst.canvas.style.top = 0;
+        inst.ctx = inst.canvas.getContext("2d");
+        inst.background_content.body.appendChild(inst.canvas);
+    
+
+        console.log('End canvas load, body height: '+inst.background_content.body.scrollHeight)
+        console.log(inst.background, inst.canvas);
+        inst.ctx = inst.canvas.getContext("2d");
+
+
+        inst.initTrackingMap();
+    };*/
+}
+
+Tracker.prototype.initTrackingMap = function () { //console.log(this.trackData)
+    
+    // ustaw dlugosci danych trackingu kursora i eventow
+    this.tracking_data_legth = this.trackData.tracking_data.length;
+    this.events_data_legth = this.trackData.events_data.length;
+    
+
+    console.log('ViewPort: '+this.trackData.viewport_width)
+    // Skalowanie backgrounda 
+    this.background.width = this.trackData.viewport_width;
+    this.background.height = this.trackData.viewport_height;
+    this.background.style.transform = 'scale(' + this.tracking_scale + ')';
+    this.background.style.transformOrigin = '0 0';
+    
+    // Skalowanie canvasa 
+    this.canvas.width = this.trackData.document_width;
+    this.canvas.height = this.background_content.body.scrollHeight;// this.trackData.document_height;
+//    this.canvas.style.transform = 'scale(' + this.tracking_scale + ')';
+//    this.canvas.style.transformOrigin = '0 0';
+       
+    var height = this.canvas.height * this.tracking_scale + 10;
+    // this.canvas.insertAdjacentHTML('afterend', '<div style="width:100%;height:' + height + 'px"></div>');
+    
+    
+    
+    this.prevX = this.trackData.tracking_data[0].x;
+    this.prevY = this.trackData.tracking_data[0].y;
+    this.last_time = this.trackData.tracking_data[0].time;
+    
+};
+
 /**
  * Pobierz dane trakingu przez ajax, odpal nastepne funkcje
  */
@@ -280,20 +376,26 @@ Tracker.prototype.init = function (tracker_id) {
     xhttp.send(JSON.stringify({elo: 'mordo'}));
     xhttp.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
-            //document.getElementById("demo").innerHTML = this.responseText;
-            setTimeout(function(){
-                tracker_inst.trackData = JSON.parse(xhttp.responseText).data;
-                tracker_inst.tracking_data_legth = tracker_inst.trackData.tracking_data.length;
-                
-                // wyswietla wszystkie stronu jakie odwiedził user podczas danej sesji
-                tracker_inst.displayTrackingPath();
-                
-                // zacznij rysować 
-                tracker_inst.displayTrackingMap();
-                
-                // wyświetl linie czasu z zaznaczonymi eventami
-                tracker_inst.runTimeline();
-            }, tracker_inst.startDelay);
+            
+            tracker_inst.trackData = JSON.parse(xhttp.responseText).data;
+            
+            // ustaw dane do rysowania, eventy, background ... 
+            tracker_inst.initCanvasAndBackground();
+            
+//            setTimeout(function(){
+//                
+//                // wyswietla wszystkie stronu jakie odwiedził user podczas danej sesji
+//                tracker_inst.displayTrackingPath();
+//                
+//                // start rysowania trackingu
+//                tracker_inst.trackingDrawStart();
+//                
+//                // odpalaj nagrane eventy
+//                tracker_inst.emitScrollEvents();
+//                
+//                // wyświetl linie czasu z zaznaczonymi eventami
+//                tracker_inst.runTimeline();
+//            }, tracker_inst.startDelay);
         }
     };
 
