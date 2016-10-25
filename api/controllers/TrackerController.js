@@ -79,11 +79,15 @@ module.exports = {
 
     },
     /**
-     * `TrackerController.create()`
+     * `TrackerController.getBackground()`
+     *  dla tracking-panel
      */
-    create: function (req, res) {
-        return res.json({
-            todo: 'create() is not implemented yet!'
+    getBackground: function (req, res) {
+        var obj = Tracker.findOne({id: req.param('tracker_id')}).exec(function (err, obj) {
+            
+            res.writeHead(200, {'content-type':'text/html'});
+            res.write(obj.tracking_data[0].background);
+            res.end();
         });
     },
     /**

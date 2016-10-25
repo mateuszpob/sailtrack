@@ -41,14 +41,19 @@ TrackerClient.prototype.onmousemoveM = function(e){
 TrackerClient.prototype.onscrollme = function() {
     var inst = this;
     var time_from_start = Date.now() - this.time_start;
-    this.scroll_stack.push({top: document.body.scrollTop, time: time_from_start});
+    this.scroll_stack.push({scroll: document.body.scrollTop, time: time_from_start});
     clearTimeout(this.scroll_stack_interval);
     
     this.scroll_stack_interval = setTimeout(function(){
-        var tmp_stack = inst.scroll_stack;
+        var tmp_stack = {
+            start_scroll: inst.scroll_stack[0].scroll, 
+            start_time: inst.scroll_stack[0].time,
+            end_scroll: inst.scroll_stack[inst.scroll_stack.length-1].scroll, 
+            end_time: inst.scroll_stack[inst.scroll_stack.length-1].time
+        };
         inst.scroll_stack = [];
         console.log(tmp_stack)
-        // inst.sendEventsData('scroll', tmp_stack)
+        inst.sendEventsData('scroll', tmp_stack)
     },100);
     
 };
@@ -59,8 +64,11 @@ TrackerClient.prototype.sendData = function(){
             session_id: this.session_id,
             app_key: 'hwdpjp100%',
             session_started_at: this.time_start,
-            width: window.innerWidth, 
-            height: window.innerHeight,
+            type: 'move',
+            viewport_width: window.innerWidth, 
+            viewport_height: window.innerHeight,
+            document_width:document.body.scrollWidth,
+            document_height: document.body.scrollHeight,
             tracking_data: this.point_stack,
             origin: window.location.origin
         }
@@ -76,8 +84,11 @@ TrackerClient.prototype.sendBackgroundData = function(bckgr){
             session_id: this.session_id,
             app_key: 'hwdpjp100%',
             session_started_at: this.time_start,
-            width: window.innerWidth, 
-            height: window.innerHeight,
+            type: 'move',
+            viewport_width: window.innerWidth, 
+            viewport_height: window.innerHeight,
+            document_width:document.body.scrollWidth,
+            document_height: document.body.scrollHeight,
             origin: window.location.origin,
             tracking_data: {
                 type: 'background',
@@ -97,11 +108,13 @@ TrackerClient.prototype.sendEventsData = function(event_type, event_data){
             session_id: this.session_id,
             app_key: 'hwdpjp100%',
             session_started_at: this.time_start,
-            width: window.innerWidth, 
-            height: window.innerHeight,
+            type: 'event',
+            viewport_width: window.innerWidth, 
+            viewport_height: window.innerHeight,
+            document_width:document.body.scrollWidth,
+            document_height: document.body.scrollHeight,
             origin: window.location.origin,
             tracking_data: {
-                type: 'event',
                 event_type: event_type,
                 pathname: window.location.pathname,
                 time:time_from_start,
@@ -111,6 +124,9 @@ TrackerClient.prototype.sendEventsData = function(event_type, event_data){
         this.socket.emit('points_data', data);
     }
 };
+
+
+
 
 TrackerClient.prototype.setCookie = function(cname, cvalue, exdays) {
     var d = new Date();

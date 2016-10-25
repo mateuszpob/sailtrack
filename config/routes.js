@@ -58,6 +58,7 @@ module.exports.routes = {
     'post /mouse-tracker/get-sessions-list': 'TrackerController.getSessionsList',
     
     'get /mouse-tracker/display-tracking/:tracker_id': 'TrackerController.displayTracking',
-    'post /mouse-tracker/display-tracking/:tracker_id': 'TrackerController.getTrackData'
+    'post /mouse-tracker/display-tracking/:tracker_id': 'TrackerController.getTrackData',
+    'get /mouse-tracker/background/:tracker_id' : 'TrackerController.getBackground'
 
 };

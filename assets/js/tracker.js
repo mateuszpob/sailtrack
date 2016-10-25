@@ -116,28 +116,42 @@ Tracker.prototype.trackingDrawStart = function () {
 Tracker.prototype.emitScrollEvents = function () {
     var inst = this;
 //    console.log('Start Emit Events!')
-    function inv() {
-        inst.events_interval = setInterval(function(){
-            if(inst.events_counter+1 < inst.events_data_legth){
-                var one_step = inst.trackData.events_data[inst.events_counter];
-                //console.log('SCROLL: '+one_step.stop+',   time: '+one_step.time)
-                
-                var b = document.getElementById('tracker-background').contentWindow.document.getElementsByTagName('body')[0];
-                b.scrollTop = one_step.stop;
-                
-                
-//                inst.background.contentWindow.scrollTo(one_step.stop, 0)
-              
-              
-                inst.events_counter++;
-                    inst.events_interval = window.clearInterval(inst.events_interval);
-                    inv();
-            }else{
-                inst.events_counter++;
+
+    function scrl(x1, x2, t1, t2) {
+        var total_time = t2 - t1;
+        var total_scroll = x2 - x1;
+        var one_step_t = total_time /  total_scroll;
+        
+//        return;
+        
+        var body = document.getElementById('tracker-background').contentWindow.document.getElementsByTagName('body')[0];
+        
+        var interval = setInterval(function() {
+            if(one_step_t >= 0){ console.log('JAZDA w Dół, time:'+t1)
+                body.scrollTop += 2;
+                if(body.scrollTop >= x2) 
+                    clearInterval(interval);
+            }else{ console.log('JAZDA w GóRE, time:'+t1)
+                body.scrollTop -= 2;
+                if(body.scrollTop <= x2)
+                    clearInterval(interval);
             }
-        }, (inst.trackData.events_data[inst.events_counter].time - inst.trackData.events_data[inst.events_counter-1].time));
-    }
-    inv();
+        }, Math.abs(one_step_t * 2));
+        
+    };
+    
+    function init() {
+        if(inst.events_counter+1 < inst.events_data_legth){
+            var one_step = inst.trackData.events_data[inst.events_counter];
+            setTimeout(function() {
+                inst.events_counter++;
+                scrl(one_step.start_scroll, one_step.end_scroll, one_step.start_time, one_step.end_time);
+                init();
+            }, (one_step.start_time - (inst.trackData.events_data[inst.events_counter-1].end_time)));
+            
+        }
+    };
+    init();
 };
 
 
@@ -286,56 +300,26 @@ Tracker.prototype.initCanvasAndBackground = function () {
     this.background.document.write(this.trackData.tracking_data[0].background);
     this.background.document.close();
     
+    this.background_content = this.background.document;
+    
     this.background.onload = function() {
         
         inst.canvas = inst.background.document.createElement('canvas');
         inst.canvas.id = 'tracker-canvas';
         inst.canvas.style.position = 'absolute';
         inst.canvas.style.top = 0;
-        inst.ctx = inst.canvas.getContext("2d");
         var x = inst.background.document.body.appendChild(inst.canvas);
-        console.log(x)
+        inst.ctx = inst.canvas.getContext("2d");
+        console.log(x);
+        
         inst.initTrackingMap();
         
     };
-    
-    /*
-    this.background = document.createElement('iframe');
-    //this.background.src = 'http://127.0.0.1:1337/mouse-tracker/background/580b4c1411fbf084085471ab';
-    this.background.id = "tracker-background";
-
-    document.getElementById("tracking-player").appendChild(inst.background); 
-        
-    inst.background_content = inst.background.contentDocument || inst.background.contentWindow.document;
-        
-        inst.background_content.write(inst.trackData.tracking_data[0].background);    
-        
-        console.log('Start canvas load')
-    this.background.onload = function() {
-        console.log('Start canvas load')
-        
-        console.log(inst.background_content);
-        
-        
-        inst.canvas = inst.background_content.createElement('canvas');
-        inst.canvas.id = 'tracker-canvas';
-        inst.canvas.style.position = 'absolute';
-        inst.canvas.style.top = 0;
-        inst.ctx = inst.canvas.getContext("2d");
-        inst.background_content.body.appendChild(inst.canvas);
-    
-
-        console.log('End canvas load, body height: '+inst.background_content.body.scrollHeight)
-        console.log(inst.background, inst.canvas);
-        inst.ctx = inst.canvas.getContext("2d");
-
-
-        inst.initTrackingMap();
-    };*/
+//inst.background_content = inst.background.contentDocument || inst.background.contentWindow.document;
 }
 
 Tracker.prototype.initTrackingMap = function () { //console.log(this.trackData)
-    
+    this.background = document.getElementById('tracker-background')
     // ustaw dlugosci danych trackingu kursora i eventow
     this.tracking_data_legth = this.trackData.tracking_data.length;
     this.events_data_legth = this.trackData.events_data.length;
@@ -363,8 +347,26 @@ Tracker.prototype.initTrackingMap = function () { //console.log(this.trackData)
     this.prevY = this.trackData.tracking_data[0].y;
     this.last_time = this.trackData.tracking_data[0].time;
     
+    // wystartuj reszte funkcji do rysowania etc
+    this.startTracker();
+    
 };
+Tracker.prototype.startTracker = function (){
+    var tracker_inst = this;
+    setTimeout(function(){
+        // wyswietla wszystkie strony jakie odwiedził user podczas danej sesji
+        tracker_inst.displayTrackingPath();
 
+        // start rysowania trackingu
+        tracker_inst.trackingDrawStart();
+
+        // odpalaj nagrane eventy
+        tracker_inst.emitScrollEvents();
+
+        // wyświetl linie czasu z zaznaczonymi eventami
+        tracker_inst.runTimeline();
+    }, tracker_inst.startDelay);
+};
 /**
  * Pobierz dane trakingu przez ajax, odpal nastepne funkcje
  */
@@ -382,20 +384,6 @@ Tracker.prototype.init = function (tracker_id) {
             // ustaw dane do rysowania, eventy, background ... 
             tracker_inst.initCanvasAndBackground();
             
-//            setTimeout(function(){
-//                
-//                // wyswietla wszystkie stronu jakie odwiedził user podczas danej sesji
-//                tracker_inst.displayTrackingPath();
-//                
-//                // start rysowania trackingu
-//                tracker_inst.trackingDrawStart();
-//                
-//                // odpalaj nagrane eventy
-//                tracker_inst.emitScrollEvents();
-//                
-//                // wyświetl linie czasu z zaznaczonymi eventami
-//                tracker_inst.runTimeline();
-//            }, tracker_inst.startDelay);
         }
     };
 

@@ -14,10 +14,6 @@ module.exports.bootstrap = function(cb) {
     // Tracking data handler
     sails.io.on('connect', function (socket){
         var address = socket.handshake.headers.origin
-        console.log('1==========================================')
-        console.log(socket)
-        console.log('2==============================================')
-        console.log('socket Connect: '+address);
         if(address && address != 'http://127.0.0.1:1337' && address != 'http://127.0.0.1:1337/'){
             console.log('Wait for data.');
             socket.on('points_data', function (data) {
