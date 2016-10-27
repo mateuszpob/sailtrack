@@ -16,7 +16,7 @@ module.exports = {
     /*
      * Tu przylatują dane przez sockety. Dodajemy do istniejącej sesji, albo tworzy nową jeśli takiej nie ma.
      */
-    insertTrackData: function (track_data) {
+    _insertTrackData: function (track_data) {
         switch(track_data.type){
             case 'move':
                 Tracker.insertMove(track_data);
@@ -130,6 +130,57 @@ module.exports = {
                     console.log('------------------------------------------')
                 });
             }
+        });
+    },
+    
+    insertTrackData: function (track_data) {  console.log('================== Jaaaaazdaaa z obiektem!');
+        Tracker.findOne({
+            session_id: track_data.session_id,
+            app_key: track_data.app_key,
+            // session_started_at: track_data.session_started_at
+        }).exec(function (err, obj) {
+            if(obj){
+                console.log(track_data);
+                switch(track_data.type){
+                    case 'move':
+                        for (var attrname in track_data.move_data) { 
+                            obj.move_data[''+attrname] = track_data.move_data[attrname]; 
+                        }
+                        break;
+                    case 'scroll':
+                        console.log('Type: '+track_data.type)
+                        for (var attrname in track_data.scroll_data) { 
+                            obj.scroll_data[''+attrname] = track_data.scroll_data[attrname]; 
+                        }
+                        obj.save();
+                        console.log(track_data, obj)
+                        break;
+                }
+                
+                
+                
+                obj.save();
+            }else{
+                Tracker.create({
+                    session_id: track_data.session_id,
+                    app_key: track_data.app_key,
+                    origin: track_data.origin,
+                    session_started_at: track_data.session_started_at,
+                    background: track_data.background,
+                    
+                    viewport_width: track_data.viewport_width,
+                    viewport_height: track_data.viewport_height,
+                    document_width: track_data.document_width,
+                    document_height: track_data.document_height,
+                    
+                    move_data: {},
+                    scroll_data: {}
+                    
+                }).exec(function createCB(err, created) {
+                    console.log('create new Object.')
+                });
+            }
+    
         });
     },
 };

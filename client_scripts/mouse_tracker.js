@@ -22,61 +22,100 @@ TrackerClient.prototype.onmousemoveM = function(e){
     var dt = new Date();
     
     this.move++;
-    if(this.move % this.rast == 0){
+    if(this.move % this.rast === 0){
         var time_from_start = Date.now() - this.time_start;
-        this.point_stack.push({
-            type: 'move',
-            pathname: window.location.pathname,
-            time:time_from_start,
+        this.point_stack[time_from_start] = {
+            //pathname: window.location.pathname,
             x:e.pageX, 
             y:e.pageY
-        });
+        };
     }
-    if(this.move % this.send_moment == 0){ 
-        this.sendData();
+    if(this.move % this.send_moment === 0){ 
+        this.sendData('move', this.point_stack);
         this.move = 1;
     }
 };
 
-TrackerClient.prototype.onscrollme = function() {
+TrackerClient.prototype.onscrollme = function() { console.log('scrolujeeeeeeeeeee')
     var inst = this;
     var time_from_start = Date.now() - this.time_start;
     this.scroll_stack.push({scroll: document.body.scrollTop, time: time_from_start});
     clearTimeout(this.scroll_stack_interval);
-    
+    this.tmp_stack = {};
     this.scroll_stack_interval = setTimeout(function(){
-        var tmp_stack = {
+        
+        inst.tmp_stack[inst.scroll_stack[0].time] = {
             start_scroll: inst.scroll_stack[0].scroll, 
             start_time: inst.scroll_stack[0].time,
             end_scroll: inst.scroll_stack[inst.scroll_stack.length-1].scroll, 
             end_time: inst.scroll_stack[inst.scroll_stack.length-1].time
         };
         inst.scroll_stack = [];
-        console.log(tmp_stack)
-        inst.sendEventsData('scroll', tmp_stack)
+        inst.sendData('scroll', inst.tmp_stack)
     },100);
     
 };
 
-TrackerClient.prototype.sendData = function(){
-    if(this.point_stack.length){
+TrackerClient.prototype.sendData = function(type, to_send){
+    if(to_send){
+        
+        var point_stack = null;
+        var scroll_stack = null;
+        
+        
+        switch(type){
+            case 'move':
+                point_stack = to_send;
+                scroll_stack = {};
+                break;
+            case 'scroll': 
+                point_stack = {};
+                scroll_stack = to_send;
+                break;
+        }
+        
         var points_data = {
             session_id: this.session_id,
             app_key: 'hwdpjp100%',
             session_started_at: this.time_start,
-            type: 'move',
+            type: type,
             viewport_width: window.innerWidth, 
             viewport_height: window.innerHeight,
             document_width:document.body.scrollWidth,
             document_height: document.body.scrollHeight,
-            tracking_data: this.point_stack,
-            origin: window.location.origin
+            origin: window.location.origin,
+            move_data: point_stack,
+            scroll_data: scroll_stack
         }
+        console.log('EMITED: ')
+        console.log(points_data)
         this.socket.emit('points_data', points_data);
         this.point_stack = [];
+    }else{
+        console.log('huuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuj', to_send, to_send.length)
     }
 };
-
+/*
+ * Wysyla dane inicjujące pierwszy obiekt sesji na serwerze
+ */
+TrackerClient.prototype.sendInitData = function(html){
+    var points_data = {
+        session_id: this.session_id,
+        app_key: 'hwdpjp100%',
+        session_started_at: this.time_start,
+        type: 'init',
+        viewport_width: window.innerWidth, 
+        viewport_height: window.innerHeight,
+        document_width:document.body.scrollWidth,
+        document_height: document.body.scrollHeight,
+        origin: window.location.origin,
+        background: html,
+        move_data: {},
+        scroll_data: {}
+    }
+    this.socket.emit('points_data', points_data);
+};
+/*
 TrackerClient.prototype.sendBackgroundData = function(bckgr){
     if(true){
         var time_from_start = Date.now() - this.time_start;
@@ -90,7 +129,7 @@ TrackerClient.prototype.sendBackgroundData = function(bckgr){
             document_width:document.body.scrollWidth,
             document_height: document.body.scrollHeight,
             origin: window.location.origin,
-            tracking_data: {
+            move_data: {
                 type: 'background',
                 pathname: window.location.pathname,
                 time:time_from_start,
@@ -114,7 +153,7 @@ TrackerClient.prototype.sendEventsData = function(event_type, event_data){
             document_width:document.body.scrollWidth,
             document_height: document.body.scrollHeight,
             origin: window.location.origin,
-            tracking_data: {
+            move_data: {
                 event_type: event_type,
                 pathname: window.location.pathname,
                 time:time_from_start,
@@ -124,7 +163,7 @@ TrackerClient.prototype.sendEventsData = function(event_type, event_data){
         this.socket.emit('points_data', data);
     }
 };
-
+*/
 
 
 
@@ -165,13 +204,15 @@ var init = function(){
     console.log('Tracker Init')
     
     var inst = new TrackerClient();
-    var body = document.getElementsByTagName("BODY")[0];
+    var body = document.body;
     inst.time_start = Date.now();
     inst.socket = io.connect('http://127.0.0.1:1337');
     inst.session_id = inst.getSessionId();
     
     var last_html = document.documentElement.outerHTML;
-    inst.sendBackgroundData(last_html)
+   // inst.sendBackgroundData(last_html)
+   
+    inst.sendInitData(last_html);
     
     document.addEventListener("mousemove", function(e){
         last_html = document.body.outerHTML;
@@ -263,3 +304,9 @@ var init = function(){
 
 document.addEventListener('DOMContentLoaded', init, false);
 
+
+
+//var i=0;
+//setInterval(function(){
+//    //console.log(++i);
+//}, 1)
