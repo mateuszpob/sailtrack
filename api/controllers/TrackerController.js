@@ -23,6 +23,8 @@ module.exports = {
      */
     getSessionsList: function (req, res) {
         var obj = Tracker.find().sort('session_started_at DESC').exec(function (err, obj) {
+            console.log('hhhhhhhhhhhhhhhhhhhhhhhhhhhhhh')
+            console.log(obj)
             return res.json({data:obj})
         });
     },

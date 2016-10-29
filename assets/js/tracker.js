@@ -4,7 +4,6 @@ var Tracker = function () {
     this.prevX = null;
     this.prevY = null;
     this.background_light = false; // czy renderowac zdarzenai z htmla (true), czy na iframe z aktualna strona (false)
-    this.user_screen_width = 1920;
     this.number_of_data_portion = 0;
     this.tracking_scale = 0.825; // skala canvasa i backgroundu
     this.last_time = null;
@@ -19,6 +18,11 @@ var Tracker = function () {
     this.timeline_is_paused = false; // do zatrzymywania lini czasu (np przy przechodzeniu między podstronami sesji)
     this.go_step_locker = false; // blokada przycisków go_step, jak jeden step sie laduje to zeby nie klikac, bo i na huj
     this.redirect_steps = [];
+    
+    this.events_timer_interval = null; // wersja z timerem: główny timer eventów (interval)
+    this.run_time = null; // czas w ktorym rozpocznie się odtwarzanie eventow
+    this.first_event_time = null;
+    this.last_event_time = null;
 
     this.canvas = null; //document.getElementById('tracker-canvas');
     this.background = null; //document.getElementById('tracker-background');
@@ -49,13 +53,34 @@ Tracker.prototype.init = function (tracker_id) {
             
             tracker_inst.trackData = JSON.parse(xhttp.responseText).data;
             
+            tracker_inst.findFirsAndLastEventTime();
             // ustaw dane do rysowania, eventy, background ... 
             tracker_inst.initCanvasAndBackground();
      
         }
     };
 };
-
+Tracker.prototype.findFirsAndLastEventTime = function () {
+    var temp_first_time = 99999999;
+    var temp_last_time = 0;
+    
+    for (var o in this.trackData.move_data){
+        if(temp_first_time >= parseInt(o))
+            temp_first_time = parseInt(o);
+        
+        if(temp_last_time <= parseInt(o))
+            temp_last_time = parseInt(o);
+    }
+    for (var o in this.trackData.scroll_data){
+        if(temp_first_time >= parseInt(o))
+            temp_first_time = parseInt(o);
+        
+        if(temp_last_time <= parseInt(o))
+            temp_last_time = parseInt(o);
+    }
+    this.first_event_time = temp_first_time;
+    this.last_event_time = temp_last_time;
+};
 /*
  * Doklej canvas do srodka iframe
  */
@@ -67,7 +92,7 @@ Tracker.prototype.initCanvasAndBackground = function () {
     
     this.background = window.frames['tracker-background'];
     this.background.document.open();
-    this.background.document.write(this.trackData.move_data[0].background);
+    this.background.document.write(this.trackData.background);
     this.background.document.close();
     
     this.background_content = this.background.document;
@@ -78,18 +103,33 @@ Tracker.prototype.initCanvasAndBackground = function () {
         inst.canvas.id = 'tracker-canvas';
         inst.canvas.style.position = 'absolute';
         inst.canvas.style.top = 0;
+        inst.canvas.style['z-index'] = 2147483646;
+        
+        inst.tracker_cursor = inst.background.document.createElement('div');
+        inst.tracker_cursor.id = 'tracker-cursor';
+        inst.tracker_cursor.style.position = 'absolute';
+        inst.tracker_cursor.style.top = 100;
+        inst.tracker_cursor.style.left = 100;
+        inst.tracker_cursor.style.width = 90;
+        inst.tracker_cursor.style.height = 90;
+        inst.tracker_cursor.style.background = 'url(http://127.0.0.1:1337/images/mouse_cursor_2.png)';
+        inst.tracker_cursor.style['background-size'] = 'contain';
+        inst.tracker_cursor.style['z-index'] = 2147483647;
+
+        
         var x = inst.background.document.body.appendChild(inst.canvas);
+        var y = inst.background.document.body.appendChild(inst.tracker_cursor);
         inst.ctx = inst.canvas.getContext("2d");
-        console.log(x);
+        console.log(x, y);
         
         inst.initTrackingMap();
         
     };
 //inst.background_content = inst.background.contentDocument || inst.background.contentWindow.document;
-}
+};
 
 Tracker.prototype.initTrackingMap = function () { //console.log(this.trackData)
-    this.background = document.getElementById('tracker-background')
+    this.background = document.getElementById('tracker-background');
     // ustaw dlugosci danych trackingu kursora i eventow
     this.move_data_legth = this.trackData.move_data.length;
     this.scroll_data_legth = this.trackData.scroll_data.length;
@@ -102,20 +142,18 @@ Tracker.prototype.initTrackingMap = function () { //console.log(this.trackData)
     this.background.style.transform = 'scale(' + this.tracking_scale + ')';
     this.background.style.transformOrigin = '0 0';
     
+    document.getElementById('overlay').style.width = this.trackData.viewport_width+"px";
+    document.getElementById('overlay').style.height = this.trackData.viewport_height+"px";
+    document.getElementById('overlay').style.transform = 'scale(' + this.tracking_scale + ')';
+    document.getElementById('overlay').style.transformOrigin = '0 0';
+    document.getElementById('overlay').style['z-index'] = 2147483647;
+    
     // Skalowanie canvasa 
     this.canvas.width = this.trackData.document_width;
-    this.canvas.height = this.background_content.body.scrollHeight;// this.trackData.document_height;
-//    this.canvas.style.transform = 'scale(' + this.tracking_scale + ')';
-//    this.canvas.style.transformOrigin = '0 0';
+    this.canvas.height = this.background_content.body.scrollHeight;
        
     var height = this.canvas.height * this.tracking_scale + 10;
     // this.canvas.insertAdjacentHTML('afterend', '<div style="width:100%;height:' + height + 'px"></div>');
-    
-    
-    
-    this.prevX = this.trackData.move_data[0].x;
-    this.prevY = this.trackData.move_data[0].y;
-    this.last_time = this.trackData.move_data[0].time;
     
     // wystartuj reszte funkcji do rysowania etc
     this.startTracker();
@@ -123,17 +161,73 @@ Tracker.prototype.initTrackingMap = function () { //console.log(this.trackData)
 };
 
 Tracker.prototype.startTracker = function (){
-//    inst.ctx.beginPath();
-//    inst.ctx.lineTo(one_step.x, one_step.y);
-//    inst.ctx.stroke();
+    var inst = this;
+    this.time_start = Date.now();
+    var time_temp = Math.round(this.time_start / 10) * 10;
+
+
+
+    // ======== START PATH
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = "black";
+    this.ctx.moveTo(0, 0);
+
+
+
+
+    this.events_timer = setInterval(function(){
+        var time_string = Date.now() - inst.time_start;
+        time_string = Math.round(time_string / 10) * 10;
+        
+        if(time_temp != time_string){
+           inst.mouseMoveEvent(inst.trackData.move_data[""+time_string]); 
+           inst.scrollEvent(inst.trackData.scroll_data[""+time_string]); 
+           
+           
+           
+           
+           
+           time_temp = time_string;
+        }
+        // zakończ jeśli minał czas ostatniego eventu
+        if(time_string >= this.last_event_time)
+            clearInterval(this.events_timer);
+    }, 1);
 };
 
-
-
-
-
-
-
+Tracker.prototype.mouseMoveEvent = function (one_step){
+    if(one_step){
+        this.ctx.lineTo(one_step.x, one_step.y);
+        this.ctx.stroke()
+        this.tracker_cursor.style.top = one_step.y-30;
+        this.tracker_cursor.style.left = one_step.x-40;
+    }
+};
+Tracker.prototype.scrollEvent = function (one_step){
+    if(one_step){
+        var total_time = one_step.end_time - one_step.start_time;
+        var total_scroll = one_step.end_scroll - one_step.start_scroll;
+        var one_step_t = total_time /  total_scroll;
+        
+        
+        var body = document.getElementById('tracker-background').contentWindow.document.getElementsByTagName('body')[0];
+        
+//        var body = this.background.document.body
+        
+        var interval = setInterval(function() {
+            if(one_step_t >= 0){ console.log('JAZDA w Dół, time:'+one_step.start_time)
+                body.scrollTop += 4;
+                if(body.scrollTop >= one_step.end_scroll) 
+                    clearInterval(interval);
+            }else{ console.log('JAZDA w GóRE, time:'+one_step.start_time)
+                body.scrollTop -= 4;
+                if(body.scrollTop <= one_step.end_scroll)
+                    clearInterval(interval);
+            }
+        }, Math.abs(one_step_t));
+        
+    }
+};
 
 
 

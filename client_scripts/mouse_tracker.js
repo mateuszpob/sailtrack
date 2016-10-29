@@ -2,11 +2,7 @@ var TrackerClient = function() {
     this.move = 1;
     this.rast = 2;
     this.send_moment = 10;
-    
-    this.point_stack = [];
-    this.socket;
-    this.time_start;
-    this.session_id;
+    this.point_stack = {};
     
     this.scroll_stack = [];
     this.scroll_stack_interval = null;
@@ -14,21 +10,28 @@ var TrackerClient = function() {
     this.cookie_name = 'tracker_sid';
     this.session_exp_days = 1;
     this.socket = null;
+    
+    this.time_start;
+    this.session_id;
 };
 
 
 
 TrackerClient.prototype.onmousemoveM = function(e){
-    var dt = new Date();
     
     this.move++;
     if(this.move % this.rast === 0){
         var time_from_start = Date.now() - this.time_start;
-        this.point_stack[time_from_start] = {
-            //pathname: window.location.pathname,
-            x:e.pageX, 
-            y:e.pageY
-        };
+        time_from_start = Math.round(time_from_start / 10) * 10;
+        if(e.pageX && e.pageY){
+            var prop = ""+time_from_start;
+            console.log(e.pageX, e.pageY, prop)
+            this.point_stack[prop] = {
+                //pathname: window.location.pathname,
+                x:e.pageX, 
+                y:e.pageY
+            };
+        }
     }
     if(this.move % this.send_moment === 0){ 
         this.sendData('move', this.point_stack);
@@ -39,12 +42,13 @@ TrackerClient.prototype.onmousemoveM = function(e){
 TrackerClient.prototype.onscrollme = function() { console.log('scrolujeeeeeeeeeee')
     var inst = this;
     var time_from_start = Date.now() - this.time_start;
+    time_from_start = Math.round(time_from_start / 10) * 10;
     this.scroll_stack.push({scroll: document.body.scrollTop, time: time_from_start});
     clearTimeout(this.scroll_stack_interval);
     this.tmp_stack = {};
     this.scroll_stack_interval = setTimeout(function(){
         
-        inst.tmp_stack[inst.scroll_stack[0].time] = {
+        inst.tmp_stack[''+inst.scroll_stack[0].time] = {
             start_scroll: inst.scroll_stack[0].scroll, 
             start_time: inst.scroll_stack[0].time,
             end_scroll: inst.scroll_stack[inst.scroll_stack.length-1].scroll, 
@@ -57,6 +61,7 @@ TrackerClient.prototype.onscrollme = function() { console.log('scrolujeeeeeeeeee
 };
 
 TrackerClient.prototype.sendData = function(type, to_send){
+    console.log('huuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuj',type, to_send, to_send.length)
     if(to_send){
         
         var point_stack = null;
@@ -79,10 +84,6 @@ TrackerClient.prototype.sendData = function(type, to_send){
             app_key: 'hwdpjp100%',
             session_started_at: this.time_start,
             type: type,
-            viewport_width: window.innerWidth, 
-            viewport_height: window.innerHeight,
-            document_width:document.body.scrollWidth,
-            document_height: document.body.scrollHeight,
             origin: window.location.origin,
             move_data: point_stack,
             scroll_data: scroll_stack
@@ -90,9 +91,9 @@ TrackerClient.prototype.sendData = function(type, to_send){
         console.log('EMITED: ')
         console.log(points_data)
         this.socket.emit('points_data', points_data);
-        this.point_stack = [];
+        this.point_stack = {};
     }else{
-        console.log('huuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuj', to_send, to_send.length)
+        
     }
 };
 /*

@@ -133,7 +133,7 @@ module.exports = {
         });
     },
     
-    insertTrackData: function (track_data) {  console.log('================== Jaaaaazdaaa z obiektem!');
+    insertTrackData: function (track_data) {  console.log('================== Jaaaaazdaaa z obiektem!: '+track_data.type);
         Tracker.findOne({
             session_id: track_data.session_id,
             app_key: track_data.app_key,
@@ -148,12 +148,9 @@ module.exports = {
                         }
                         break;
                     case 'scroll':
-                        console.log('Type: '+track_data.type)
                         for (var attrname in track_data.scroll_data) { 
                             obj.scroll_data[''+attrname] = track_data.scroll_data[attrname]; 
                         }
-                        obj.save();
-                        console.log(track_data, obj)
                         break;
                 }
                 
@@ -161,12 +158,24 @@ module.exports = {
                 
                 obj.save();
             }else{
+                
+                var background = track_data.background
+                            .replace(/(\r\n|\n|\r)/gm,"")
+                            .replace(/src="\/\//g,'src="_sailtrack/')
+                            .replace(/href="\/\//g,'href="_sailtrack/')
+
+                            .replace(/src="\//g,'src="http://127.0.0.1:8000/')
+                            .replace(/href="\//g,'href="http://127.0.0.1:8000/')
+
+                            .replace(/src="_sailtrack\//g,'src="//')
+                            .replace(/href="_sailtrack\//g,'href="//');
+                
                 Tracker.create({
                     session_id: track_data.session_id,
                     app_key: track_data.app_key,
                     origin: track_data.origin,
                     session_started_at: track_data.session_started_at,
-                    background: track_data.background,
+                    background: background,
                     
                     viewport_width: track_data.viewport_width,
                     viewport_height: track_data.viewport_height,

@@ -27,20 +27,14 @@
                     <thead>
                         <tr>
                             <th>App Key</th>
-                            <th>Session id</th>
-                            <th>From page</th>
-                            <th>Start date</th>
-                            <th>Duration (min)</th>
+                            <th>id</th>
                             <th> </th>
                         </tr>
                     </thead>
                     <tfoot>
                         <tr>
                             <th>App Key</th>
-                            <th>Session id</th>
-                            <th>From page</th>
-                            <th>Start date</th>
-                            <th>Duration (min)</th>
+                            <th>id</th>
                             <th> </th>
                         </tr>
                     </tfoot>
@@ -61,33 +55,33 @@
             "columns": [
                 {"data": "app_key"},
                 {"data": "session_id"},
-                {
-                    "orderable": true,
-                    "data": "session_started_at",
-                    "render": function (data, type, row) {
-                        return row.origin + row.tracking_data[0].pathname
-                    },
-                },
-                {
-                    "orderable": true,
-                    "data": "session_started_at",
-                    "render": function (data, type, row) {
-                        var date = new Date(parseFloat(data));
-                        return ('0' + date.getDate()).slice(-2) + '/' + ('0' + (date.getMonth() + 1)).slice(-2) + '/' + date.getFullYear() + '&nbsp;&nbsp;&nbsp;' + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2)
-                    },
-                },
-                {
-                    "orderable": true,
-                    "data": "session_started_at",
-                    "render": function (data, type, row) {
-                        var end_time = row.tracking_data[row.tracking_data.length-1].time
-                        var end_date = new Date(end_time);
-                        
-                        return ('0' + end_date.getHours()).slice(-2) + ':' 
-                        + ('0' + end_date.getMinutes()).slice(-2) + ':' 
-                        + ('0' + end_date.getSeconds()).slice(-2);
-                    },
-                },
+//                {
+//                    "orderable": true,
+//                    "data": "session_started_at",
+//                    "render": function (data, type, row) {
+//                        return row.origin + row.tracking_data[0].pathname
+//                    },
+//                },
+//                {
+//                    "orderable": true,
+//                    "data": "session_started_at",
+//                    "render": function (data, type, row) {
+//                        var date = new Date(parseFloat(data));
+//                        return ('0' + date.getDate()).slice(-2) + '/' + ('0' + (date.getMonth() + 1)).slice(-2) + '/' + date.getFullYear() + '&nbsp;&nbsp;&nbsp;' + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2)
+//                    },
+//                },
+//                {
+//                    "orderable": true,
+//                    "data": "session_started_at",
+//                    "render": function (data, type, row) {
+//                        var end_time = row.tracking_data[row.tracking_data.length-1].time
+//                        var end_date = new Date(end_time);
+//                        
+//                        return ('0' + end_date.getHours()).slice(-2) + ':' 
+//                        + ('0' + end_date.getMinutes()).slice(-2) + ':' 
+//                        + ('0' + end_date.getSeconds()).slice(-2);
+//                    },
+//                },
                 {
                     "orderable": false,
                     "data": "id",
@@ -99,8 +93,8 @@
                 }
 
             ],
-            ordering: true,
-            order:[[3, "desc"]]
+            //ordering: true,
+            //order:[[3, "desc"]]
         });
     });
 
