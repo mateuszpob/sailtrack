@@ -28,6 +28,7 @@
                         <tr>
                             <th>App Key</th>
                             <th>id</th>
+                            <th>Created at</th>
                             <th> </th>
                         </tr>
                     </thead>
@@ -35,6 +36,7 @@
                         <tr>
                             <th>App Key</th>
                             <th>id</th>
+                            <th>Created at</th>
                             <th> </th>
                         </tr>
                     </tfoot>
@@ -55,13 +57,14 @@
             "columns": [
                 {"data": "app_key"},
                 {"data": "session_id"},
-//                {
-//                    "orderable": true,
-//                    "data": "session_started_at",
-//                    "render": function (data, type, row) {
-//                        return row.origin + row.tracking_data[0].pathname
-//                    },
-//                },
+                {
+                    "orderable": true,
+                    "data": "session_started_at",
+                    "render": function (data, type, row) {
+                        var date = new Date(data);
+                        return ('0' + date.getDate()).slice(-2) + '/' + ('0' + (date.getMonth() + 1)).slice(-2) + '/' + date.getFullYear() + '&nbsp;&nbsp;&nbsp;' + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2)
+                    },
+                },
 //                {
 //                    "orderable": true,
 //                    "data": "session_started_at",

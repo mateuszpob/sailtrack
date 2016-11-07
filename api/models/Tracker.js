@@ -133,24 +133,42 @@ module.exports = {
         });
     },
     
-    insertTrackData: function (track_data) {  console.log('================== Jaaaaazdaaa z obiektem!: '+track_data.type);
+    insertTrackData: function (track_data) {
         Tracker.findOne({
             session_id: track_data.session_id,
             app_key: track_data.app_key,
             // session_started_at: track_data.session_started_at
         }).exec(function (err, obj) {
             if(obj){
-                console.log(track_data);
+//                console.log(track_data);
+                //var time_offset = track_data.session_started_at - obj.session_started_at;
+                var time_offset = Math.round((track_data.session_started_at - obj.session_started_at) / 10) * 10;
+                console.log(time_offset)
                 switch(track_data.type){
                     case 'move':
                         for (var attrname in track_data.move_data) { 
-                            obj.move_data[''+attrname] = track_data.move_data[attrname]; 
+                            obj.move_data[''+parseInt(parseInt(time_offset) + parseInt(attrname))] = track_data.move_data[attrname]; 
                         }
                         break;
                     case 'scroll':
                         for (var attrname in track_data.scroll_data) { 
-                            obj.scroll_data[''+attrname] = track_data.scroll_data[attrname]; 
+                            obj.scroll_data[''+parseInt(parseInt(time_offset) + parseInt(attrname))] = track_data.scroll_data[attrname]; 
                         }
+                        break;
+                    case 'init': 
+                        var background = track_data.background
+                            .replace(/(\r\n|\n|\r)/gm,"")
+                            .replace(/src="\/\//g,'src="_sailtrack/')
+                            .replace(/href="\/\//g,'href="_sailtrack/')
+
+                            .replace(/src="\//g,'src="http://127.0.0.1:8000/')
+                            .replace(/href="\//g,'href="http://127.0.0.1:8000/')
+
+                            .replace(/src="_sailtrack\//g,'src="//')
+                            .replace(/href="_sailtrack\//g,'href="//');
+                    
+                        console.log('================== Jaaaaazdaaa z obiektem!: '+track_data.type);
+                        obj.background_data[''+parseInt(time_offset)] = background; 
                         break;
                 }
                 
@@ -175,7 +193,7 @@ module.exports = {
                     app_key: track_data.app_key,
                     origin: track_data.origin,
                     session_started_at: track_data.session_started_at,
-                    background: background,
+                    //background: background,
                     
                     viewport_width: track_data.viewport_width,
                     viewport_height: track_data.viewport_height,
@@ -183,7 +201,8 @@ module.exports = {
                     document_height: track_data.document_height,
                     
                     move_data: {},
-                    scroll_data: {}
+                    scroll_data: {},
+                    background_data: {10: background}
                     
                 }).exec(function createCB(err, created) {
                     console.log('create new Object.')

@@ -18,6 +18,8 @@ var Tracker = function () {
     this.timeline_is_paused = false; // do zatrzymywania lini czasu (np przy przechodzeniu między podstronami sesji)
     this.go_step_locker = false; // blokada przycisków go_step, jak jeden step sie laduje to zeby nie klikac, bo i na huj
     this.redirect_steps = [];
+    this.time_start_script = null;
+    this.time_temp = 0;
     
     this.events_timer_interval = null; // wersja z timerem: główny timer eventów (interval)
     this.run_time = null; // czas w ktorym rozpocznie się odtwarzanie eventow
@@ -54,12 +56,37 @@ Tracker.prototype.init = function (tracker_id) {
             tracker_inst.trackData = JSON.parse(xhttp.responseText).data;
             
             tracker_inst.findFirsAndLastEventTime();
+            // przeskaluj iframe i overlay
+            tracker_inst.scaleBackground();
             // ustaw dane do rysowania, eventy, background ... 
-            tracker_inst.initCanvasAndBackground();
-     
+            this.time_start_script = new Date();
+            tracker_inst.initCanvasAndBackground(tracker_inst.trackData.background_data['10']);
+            
+           
         }
     };
 };
+/*
+ * Skaluje iframe i overlay na nim
+ * @returns {undefined}
+ */
+Tracker.prototype.scaleBackground = function () {
+    this.background = document.getElementById('tracker-background');
+    this.background.width = this.trackData.viewport_width;
+    this.background.height = this.trackData.viewport_height;
+    this.background.style.transform = 'scale(' + this.tracking_scale + ')';
+    this.background.style.transformOrigin = '0 0';
+    
+    document.getElementById('overlay').style.width = this.trackData.viewport_width+"px";
+    document.getElementById('overlay').style.height = this.trackData.viewport_height+"px";
+    document.getElementById('overlay').style.transform = 'scale(' + this.tracking_scale + ')';
+    document.getElementById('overlay').style.transformOrigin = '0 0';
+    document.getElementById('overlay').style['z-index'] = 2147483647;
+};
+/*
+ * Ustawia czas pierwszego eventu i ostatniego eventu + liczba eventów move & scroll
+ * @returns {undefined}
+ */
 Tracker.prototype.findFirsAndLastEventTime = function () {
     var temp_first_time = 99999999;
     var temp_last_time = 0;
@@ -80,121 +107,112 @@ Tracker.prototype.findFirsAndLastEventTime = function () {
     }
     this.first_event_time = temp_first_time;
     this.last_event_time = temp_last_time;
+    
+    // ustaw dlugosci danych trackingu kursora i eventow
+    this.move_data_legth = this.trackData.move_data.length;
+    this.scroll_data_legth = this.trackData.scroll_data.length;
 };
 /*
  * Doklej canvas do srodka iframe
  */
-Tracker.prototype.initCanvasAndBackground = function () {
+Tracker.prototype.initCanvasAndBackground = function (html) {
     var inst = this;
-    //this.current_background_url = this.trackData.move_data[0].pathname;
-    // this.changeTrackedPage(this.trackData.move_data[0].background)
-    console.log('Start canvas elo elo')
+    
+
+    
     
     this.background = window.frames['tracker-background'];
     this.background.document.open();
-    this.background.document.write(this.trackData.background);
+    this.background.document.write(html);
     this.background.document.close();
     
     this.background_content = this.background.document;
     
     this.background.onload = function() {
-        
+        // init canvas
         inst.canvas = inst.background.document.createElement('canvas');
         inst.canvas.id = 'tracker-canvas';
         inst.canvas.style.position = 'absolute';
         inst.canvas.style.top = 0;
         inst.canvas.style['z-index'] = 2147483646;
+        inst.canvas.width = inst.trackData.document_width;
+        inst.canvas.height = inst.background_content.body.scrollHeight;
         
+        // init mouse cursor
         inst.tracker_cursor = inst.background.document.createElement('div');
         inst.tracker_cursor.id = 'tracker-cursor';
         inst.tracker_cursor.style.position = 'absolute';
-        inst.tracker_cursor.style.top = 100;
-        inst.tracker_cursor.style.left = 100;
         inst.tracker_cursor.style.width = 90;
         inst.tracker_cursor.style.height = 90;
         inst.tracker_cursor.style.background = 'url(http://127.0.0.1:1337/images/mouse_cursor_2.png)';
         inst.tracker_cursor.style['background-size'] = 'contain';
         inst.tracker_cursor.style['z-index'] = 2147483647;
 
+        // append canvas and cursor to embed document
+        inst.background.document.body.appendChild(inst.canvas);
+        inst.setCursorPosition();
+        inst.background.document.body.appendChild(inst.tracker_cursor);
+       
         
-        var x = inst.background.document.body.appendChild(inst.canvas);
-        var y = inst.background.document.body.appendChild(inst.tracker_cursor);
-        inst.ctx = inst.canvas.getContext("2d");
-        console.log(x, y);
+//        inst.initTrackingMap();
+        inst.time_start = Date.now() - inst.time_temp;
         
-        inst.initTrackingMap();
+        inst.runTimer();
         
     };
 //inst.background_content = inst.background.contentDocument || inst.background.contentWindow.document;
 };
 
-Tracker.prototype.initTrackingMap = function () { //console.log(this.trackData)
-    this.background = document.getElementById('tracker-background');
-    // ustaw dlugosci danych trackingu kursora i eventow
-    this.move_data_legth = this.trackData.move_data.length;
-    this.scroll_data_legth = this.trackData.scroll_data.length;
-    
 
-    console.log('ViewPort: '+this.trackData.viewport_width)
-    // Skalowanie backgrounda 
-    this.background.width = this.trackData.viewport_width;
-    this.background.height = this.trackData.viewport_height;
-    this.background.style.transform = 'scale(' + this.tracking_scale + ')';
-    this.background.style.transformOrigin = '0 0';
-    
-    document.getElementById('overlay').style.width = this.trackData.viewport_width+"px";
-    document.getElementById('overlay').style.height = this.trackData.viewport_height+"px";
-    document.getElementById('overlay').style.transform = 'scale(' + this.tracking_scale + ')';
-    document.getElementById('overlay').style.transformOrigin = '0 0';
-    document.getElementById('overlay').style['z-index'] = 2147483647;
-    
-    // Skalowanie canvasa 
-    this.canvas.width = this.trackData.document_width;
-    this.canvas.height = this.background_content.body.scrollHeight;
-       
-    var height = this.canvas.height * this.tracking_scale + 10;
-    // this.canvas.insertAdjacentHTML('afterend', '<div style="width:100%;height:' + height + 'px"></div>');
-    
-    // wystartuj reszte funkcji do rysowania etc
-    this.startTracker();
+Tracker.prototype.setCursorPosition = function () {
+    this.ctx = this.canvas.getContext("2d");
+    var t = this.time_temp;
+    var i = 0;
+    while(this.trackData.move_data[t] === undefined || i<this.move_data_legth){ console.log('!!!!: '+this.time_temp)
+        i++;
+        t += 10;
+    }
+    if(this.trackData.move_data[t]){ console.log('CURSOR MOVED: '+t, this.trackData.move_data[t])
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = "black";
+        this.ctx.moveTo(this.trackData.move_data[t].x, this.trackData.move_data[t].y);
+        // ustaw kursor (obrazek myszk)
+        this.tracker_cursor.style.top = this.trackData.move_data[t].y;
+        this.tracker_cursor.style.left = this.trackData.move_data[t].x;
+    }
     
 };
 
-Tracker.prototype.startTracker = function (){
+Tracker.prototype.runTimer = function (){
     var inst = this;
-    this.time_start = Date.now();
-    var time_temp = Math.round(this.time_start / 10) * 10;
-
-
-
-    // ======== START PATH
-    this.ctx.beginPath();
-    this.ctx.strokeStyle = "black";
-    this.ctx.moveTo(0, 0);
-
-
-
-
-    this.events_timer = setInterval(function(){
-        var time_string = Date.now() - inst.time_start;
-        time_string = Math.round(time_string / 10) * 10;
+    
+    this.events_timer = setInterval(function(){ 
+        inst.time_temp = Math.round((Date.now() - inst.time_start) / 10) * 10;
+        // console.log('time_string: '+inst.time_temp)
         
-        if(time_temp != time_string){
-           inst.mouseMoveEvent(inst.trackData.move_data[""+time_string]); 
-           inst.scrollEvent(inst.trackData.scroll_data[""+time_string]); 
+        inst.mouseMoveEvent(inst.trackData.move_data[""+inst.time_temp]); 
+        inst.scrollEvent(inst.trackData.scroll_data[""+inst.time_temp]); 
+        inst.backgroundEvent(inst.trackData.background_data[""+inst.time_temp], inst.time_temp); 
            
-           
-           
-           
-           
-           time_temp = time_string;
-        }
-        // zakończ jeśli minał czas ostatniego eventu
-        if(time_string >= this.last_event_time)
-            clearInterval(this.events_timer);
-    }, 1);
+        if(inst.time_temp >= inst.last_event_time)
+            clearInterval(inst.events_timer);
+    }, 10);
+    
 };
 
+
+Tracker.prototype.backgroundEvent = function (html, t){ 
+    if(html){
+        var inst = this;
+        clearInterval(this.events_timer);
+        this.time_start = this.time_temp;
+        setTimeout(function(){
+            console.log('Podmianka HTMLa: '+t)
+            inst.initCanvasAndBackground(html);
+        }, 500);
+          
+    }
+};
 Tracker.prototype.mouseMoveEvent = function (one_step){
     if(one_step){
         this.ctx.lineTo(one_step.x, one_step.y);
@@ -207,7 +225,7 @@ Tracker.prototype.scrollEvent = function (one_step){
     if(one_step){
         var total_time = one_step.end_time - one_step.start_time;
         var total_scroll = one_step.end_scroll - one_step.start_scroll;
-        var one_step_t = total_time /  total_scroll;
+        var one_step_t = 10 * total_time /  total_scroll;
         
         
         var body = document.getElementById('tracker-background').contentWindow.document.getElementsByTagName('body')[0];
@@ -215,22 +233,19 @@ Tracker.prototype.scrollEvent = function (one_step){
 //        var body = this.background.document.body
         
         var interval = setInterval(function() {
-            if(one_step_t >= 0){ console.log('JAZDA w Dół, time:'+one_step.start_time)
-                body.scrollTop += 4;
+            if(one_step_t >= 0){
+                body.scrollTop += 10;
                 if(body.scrollTop >= one_step.end_scroll) 
                     clearInterval(interval);
-            }else{ console.log('JAZDA w GóRE, time:'+one_step.start_time)
-                body.scrollTop -= 4;
+            }else{
+                body.scrollTop -= 10;
                 if(body.scrollTop <= one_step.end_scroll)
                     clearInterval(interval);
             }
         }, Math.abs(one_step_t));
         
     }
-};
-
-
-
+}; 
 
 
 
@@ -369,11 +384,11 @@ Tracker.prototype.emitScrollEvents = function () {
         var body = document.getElementById('tracker-background').contentWindow.document.getElementsByTagName('body')[0];
         
         var interval = setInterval(function() {
-            if(one_step_t >= 0){ console.log('JAZDA w Dół, time:'+t1)
+            if(one_step_t >= 0){ 
                 body.scrollTop += 2;
                 if(body.scrollTop >= x2) 
                     clearInterval(interval);
-            }else{ console.log('JAZDA w GóRE, time:'+t1)
+            }else{ 
                 body.scrollTop -= 2;
                 if(body.scrollTop <= x2)
                     clearInterval(interval);
