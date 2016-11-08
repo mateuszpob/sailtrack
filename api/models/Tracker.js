@@ -168,7 +168,13 @@ module.exports = {
                             .replace(/href="_sailtrack\//g,'href="//');
                     
                         console.log('================== Jaaaaazdaaa z obiektem!: '+track_data.type);
-                        obj.background_data[''+parseInt(time_offset)] = background; 
+                        obj.background_data[''+parseInt(time_offset)] = {
+                            background: background, 
+                            viewport_width: track_data.viewport_width,
+                            viewport_height: track_data.viewport_height,
+                            document_width: track_data.document_width,
+                            document_height: track_data.document_height,
+                        }
                         break;
                 }
                 
@@ -193,16 +199,16 @@ module.exports = {
                     app_key: track_data.app_key,
                     origin: track_data.origin,
                     session_started_at: track_data.session_started_at,
-                    //background: background,
-                    
-                    viewport_width: track_data.viewport_width,
-                    viewport_height: track_data.viewport_height,
-                    document_width: track_data.document_width,
-                    document_height: track_data.document_height,
                     
                     move_data: {},
                     scroll_data: {},
-                    background_data: {10: background}
+                    background_data: {10: {
+                            background: background,
+                            viewport_width: track_data.viewport_width,
+                            viewport_height: track_data.viewport_height,
+                            document_width: track_data.document_width,
+                            document_height: track_data.document_height
+                    }}
                     
                 }).exec(function createCB(err, created) {
                     console.log('create new Object.')

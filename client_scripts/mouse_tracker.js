@@ -116,55 +116,6 @@ TrackerClient.prototype.sendInitData = function(html){
     }
     this.socket.emit('points_data', points_data);
 };
-/*
-TrackerClient.prototype.sendBackgroundData = function(bckgr){
-    if(true){
-        var time_from_start = Date.now() - this.time_start;
-        var data = {
-            session_id: this.session_id,
-            app_key: 'hwdpjp100%',
-            session_started_at: this.time_start,
-            type: 'move',
-            viewport_width: window.innerWidth, 
-            viewport_height: window.innerHeight,
-            document_width:document.body.scrollWidth,
-            document_height: document.body.scrollHeight,
-            origin: window.location.origin,
-            move_data: {
-                type: 'background',
-                pathname: window.location.pathname,
-                time:time_from_start,
-                background: bckgr
-            }
-        }
-        this.socket.emit('points_data', data);
-    }
-};
-
-TrackerClient.prototype.sendEventsData = function(event_type, event_data){
-    if(true){
-        var time_from_start = Date.now() - this.time_start;
-        var data = {
-            session_id: this.session_id,
-            app_key: 'hwdpjp100%',
-            session_started_at: this.time_start,
-            type: 'event',
-            viewport_width: window.innerWidth, 
-            viewport_height: window.innerHeight,
-            document_width:document.body.scrollWidth,
-            document_height: document.body.scrollHeight,
-            origin: window.location.origin,
-            move_data: {
-                event_type: event_type,
-                pathname: window.location.pathname,
-                time:time_from_start,
-                event_data: event_data
-            }
-        }
-        this.socket.emit('points_data', data);
-    }
-};
-*/
 
 
 
@@ -226,81 +177,6 @@ var init = function(){
     });
     
     
-    
-    
-
-//    body.addEventListener("mouseout", function (event) {
-//        inst.sendData();
-//    });
-//
-//
-//    document.addEventListener("click", function(e){
-////e.preventDefault();
-//        last_html = document.body.outerHTML;
-//        var sec = null;
-//
-//        setTimeout(function(){
-//            sec = document.body.innerHTML;
-//            if(sec != last_html){
-//                console.log('robie SreenShot')
-//                last_html = document.documentElement.outerHTML;
-////                console.log(last_html)
-//                inst.sendBackgroundData(last_html)
-//            }else{
-//                
-//            }
-//        }, 200);
-//
-//    });
-    
-//    document.addEventListener('scroll', function(){
-//        sec = document.body.innerHTML;
-//        if(sec != last_html){
-//            console.log('robie SreenShot')
-//            last_html = document.documentElement.outerHTML;
-//            console.log(last_html)
-//            inst.sendBackgroundData(last_html)
-//        }else{
-//
-//        }
-//    });
-    
-    
-//    var observer = new MutationObserver(function(mutations) {
-//        mutations.forEach(function(mutationRecord) {
-//            console.log(mutationRecord);
-//            
-//        });    
-//    });
-
-//    var target = document.querySelectorAll('.welcome-featured-item')[0]
-//        var target = document;//.getElementsByTagName('*')[0];
-//        observer.observe(document, { attributes : true, attributeFilter : ['style', 'class'] });
-    
-//    [].slice.call(document.getElementsByTagName('*')).forEach(function(o,i,a){
-//        console.log(o)
-//        observer.observe(o, { attributes : true, attributeFilter : ['style', 'class'] });
-//    })    
-
-//    [].slice.call(document.getElementsByTagName('*')).forEach(function(o,i,a){
-//        
-//    });
-
-    
-
-
-//    document.addEventListener('click', function(){
-//        var sec = document.body.outerHTML;
-//        if(sec != last_html){
-//            console.log('click') 
-//        }
-//    });
-//    document.addEventListener('mouseover', function(){
-//        var sec = document.body.outerHTML;
-//        if(sec != last_html){
-//            console.log('mouseover') 
-//        }
-//    });
 };
 
 document.addEventListener('DOMContentLoaded', init, false);

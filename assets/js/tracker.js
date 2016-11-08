@@ -55,7 +55,7 @@ Tracker.prototype.init = function (tracker_id) {
             
             tracker_inst.findFirsAndLastEventTime();
             // przeskaluj iframe i overlay
-            tracker_inst.scaleBackground();
+            tracker_inst.scaleBackground(tracker_inst.trackData.background_data['10']);
             // ustaw dane do rysowania, eventy, background ... 
             this.time_start_script = new Date();
             tracker_inst.initCanvasAndBackground(tracker_inst.trackData.background_data['10']);
@@ -68,15 +68,15 @@ Tracker.prototype.init = function (tracker_id) {
  * Skaluje iframe i overlay na nim przed osadzeniem html'a
  * @returns {undefined}
  */
-Tracker.prototype.scaleBackground = function () {
+Tracker.prototype.scaleBackground = function (one_step) {
     this.background = document.getElementById('tracker-background');
-    this.background.width = this.trackData.viewport_width;
-    this.background.height = this.trackData.viewport_height;
+    this.background.width = one_step.viewport_width;
+    this.background.height = one_step.viewport_height;
     this.background.style.transform = 'scale(' + this.tracking_scale + ')';
     this.background.style.transformOrigin = '0 0';
     
-    document.getElementById('overlay').style.width = this.trackData.viewport_width+"px";
-    document.getElementById('overlay').style.height = this.trackData.viewport_height+"px";
+    document.getElementById('overlay').style.width = one_step.viewport_width+"px";
+    document.getElementById('overlay').style.height = one_step.viewport_height+"px";
     document.getElementById('overlay').style.transform = 'scale(' + this.tracking_scale + ')';
     document.getElementById('overlay').style.transformOrigin = '0 0';
     document.getElementById('overlay').style['z-index'] = 2147483647;
@@ -114,12 +114,12 @@ Tracker.prototype.findFirsAndLastEventTime = function () {
  * Osadza html'a w iframe i
  * dokleja canvas do srodka iframe
  */
-Tracker.prototype.initCanvasAndBackground = function (html) {
+Tracker.prototype.initCanvasAndBackground = function (one_step) {
     var inst = this;
     
     this.background = window.frames['tracker-background'];
     this.background.document.open();
-    this.background.document.write(html);
+    this.background.document.write(one_step.background);
     this.background.document.close();
     
     this.background_content = this.background.document;
@@ -131,7 +131,7 @@ Tracker.prototype.initCanvasAndBackground = function (html) {
         inst.canvas.style.position = 'absolute';
         inst.canvas.style.top = 0;
         inst.canvas.style['z-index'] = 2147483646;
-        inst.canvas.width = inst.trackData.document_width;
+        inst.canvas.width = one_step.document_width;
         inst.canvas.height = inst.background_content.body.scrollHeight;
         
         // init mouse cursor
@@ -208,14 +208,14 @@ Tracker.prototype.runTimer = function (){
 /*______________________________________________________________________________
  * EVENTY
  */
-Tracker.prototype.backgroundEvent = function (html, t){ 
-    if(html){
+Tracker.prototype.backgroundEvent = function (one_step, t){ 
+    if(one_step){
         var inst = this;
         clearInterval(this.events_timer);
         this.time_start = this.time_temp;
         setTimeout(function(){
             console.log('Podmianka HTMLa: '+t)
-            inst.initCanvasAndBackground(html);
+            inst.initCanvasAndBackground(one_step);
         }, 500);
           
     }
