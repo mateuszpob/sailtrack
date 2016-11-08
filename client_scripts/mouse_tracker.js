@@ -24,6 +24,8 @@ TrackerClient.prototype.onmousemoveM = function(e){
         var time_from_start = Date.now() - this.time_start;
         time_from_start = Math.round(time_from_start / 10) * 10;
         if(e.pageX && e.pageY){
+            console.log('-----------------')
+            console.log(e)
             var prop = ""+time_from_start;
             console.log(e.pageX, e.pageY, prop)
             this.point_stack[prop] = {
@@ -173,7 +175,7 @@ var init = function(){
     
     document.addEventListener('scroll', function(e){
         inst.onscrollme(e);
-       
+        inst.onmousemoveM(e);
     });
     
     
