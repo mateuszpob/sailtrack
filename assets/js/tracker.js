@@ -116,10 +116,11 @@ Tracker.prototype.findFirsAndLastEventTime = function () {
  */
 Tracker.prototype.initCanvasAndBackground = function (one_step) {
     var inst = this;
+    var bckgr = $.parseHTML(one_step.background);
     
     this.background = window.frames['tracker-background'];
     this.background.document.open();
-    this.background.document.write(one_step.background);
+    this.background.document.write(bckgr);
     this.background.document.close();
     
     this.background_content = this.background.document;
@@ -165,11 +166,11 @@ Tracker.prototype.setCursorPosition = function () {
     this.ctx = this.canvas.getContext("2d");
     var t = this.time_temp;
     var i = 0;
-    while(this.trackData.move_data[t] === undefined || i<this.move_data_legth){ console.log('!!!!: '+this.time_temp)
+    while(this.trackData.move_data[t] === undefined || i<this.move_data_legth){ //console.log('!!!!: '+this.time_temp)
         i++;
         t += 10;
     }
-    if(this.trackData.move_data[t]){ console.log('CURSOR MOVED: '+t, this.trackData.move_data[t])
+    if(this.trackData.move_data[t]){ //console.log('CURSOR MOVED: '+t, this.trackData.move_data[t])
         this.ctx.beginPath();
         this.ctx.strokeStyle = "black";
         this.ctx.moveTo(this.trackData.move_data[t].x, this.trackData.move_data[t].y);
@@ -214,7 +215,7 @@ Tracker.prototype.backgroundEvent = function (one_step, t){
         clearInterval(this.events_timer);
         this.time_start = this.time_temp;
         setTimeout(function(){
-            console.log('Podmianka HTMLa: '+t)
+            //console.log('Podmianka HTMLa: '+t)
             inst.initCanvasAndBackground(one_step);
         }, 500);
           

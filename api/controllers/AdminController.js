@@ -14,7 +14,9 @@ module.exports = {
      */
     displayDashboard: function (req, res) {
         return res.view('dashboard');
+    },
+    
+    test: function (req, res) {
+        return res.view('test');
     }
-    
-    
 };

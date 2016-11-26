@@ -46,8 +46,10 @@ module.exports.routes = {
      ***************************************************************************/
 
     'get /clientscr/:client_key/trck': 'ClientController.getClientTrackingScript',
+    'get /clientscr/:client_key/sock': 'ClientController.getClientSocketScript',
     
     
+    'get /test': 'AdminController.test',
     
     
 

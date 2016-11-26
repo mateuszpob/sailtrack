@@ -3,6 +3,7 @@ var TrackerClient = function() {
     this.rast = 2;
     this.send_moment = 10;
     this.point_stack = {};
+    this.last_mouse_event = {X:0, y:0};
     
     this.scroll_stack = [];
     this.scroll_stack_interval = null;
@@ -18,30 +19,48 @@ var TrackerClient = function() {
 
 
 TrackerClient.prototype.onmousemoveM = function(e){
-    
     this.move++;
     if(this.move % this.rast === 0){
         var time_from_start = Date.now() - this.time_start;
         time_from_start = Math.round(time_from_start / 10) * 10;
-        if(e.pageX && e.pageY){
-            console.log('-----------------')
-            console.log(e)
-            var prop = ""+time_from_start;
-            console.log(e.pageX, e.pageY, prop)
-            this.point_stack[prop] = {
-                //pathname: window.location.pathname,
-                x:e.pageX, 
-                y:e.pageY
-            };
+        
+        var prop = ""+time_from_start;
+        var p_x = null;
+        var p_y = null;
+        switch(true){
+            case e.pageX !== undefined && e.pageY !== undefined:
+                p_x = e.pageX;
+                p_y = e.pageY;
+                this.last_mouse_event = {
+                    xp: e.pageX,
+                    yp: e.pageY,
+                    xc: e.clientX,
+                    yc: e.clientY
+                }
+                break;
+            case window.scrollY !== undefined:
+                p_x = this.last_mouse_event.xc;
+                p_y = this.last_mouse_event.yc + window.scrollY;
+                //console.log('SCROLL: ', p_y, ' ============= ', this.last_mouse_event.yc , window.scrollY)
+                break;
         }
+        
+        if(p_x && p_y){
+            this.point_stack[prop] = {
+                x: p_x, 
+                y: p_y
+            };
+            
+        }
+        
     }
-    if(this.move % this.send_moment === 0){ 
+    if(this.move % this.send_moment === 0){
         this.sendData('move', this.point_stack);
         this.move = 1;
     }
 };
 
-TrackerClient.prototype.onscrollme = function() { console.log('scrolujeeeeeeeeeee')
+TrackerClient.prototype.onscrollme = function() {
     var inst = this;
     var time_from_start = Date.now() - this.time_start;
     time_from_start = Math.round(time_from_start / 10) * 10;
@@ -63,7 +82,6 @@ TrackerClient.prototype.onscrollme = function() { console.log('scrolujeeeeeeeeee
 };
 
 TrackerClient.prototype.sendData = function(type, to_send){
-    console.log('huuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuj',type, to_send, to_send.length)
     if(to_send){
         
         var point_stack = null;
@@ -90,8 +108,7 @@ TrackerClient.prototype.sendData = function(type, to_send){
             move_data: point_stack,
             scroll_data: scroll_stack
         }
-        console.log('EMITED: ')
-        console.log(points_data)
+        
         this.socket.emit('points_data', points_data);
         this.point_stack = {};
     }else{
@@ -161,10 +178,33 @@ var init = function(){
     var body = document.body;
     inst.time_start = Date.now();
     inst.socket = io.connect('http://127.0.0.1:1337');
+    
+    inst.socket.on('connect_error', function(){
+        console.log('Connection Error 44');
+    });
+    inst.socket.on('connect_failed', function(){
+        console.log('Connection Failed 44');
+    });
+    inst.socket.on('connect', function(){
+        console.log('Connected 44');
+    });
+    inst.socket.on('disconnect', function () {
+      console.log('Disconnected 44');
+    });
+    // http://stackoverflow.com/questions/40820274/save-web-page-source-javascript
     inst.session_id = inst.getSessionId();
     
     var last_html = document.documentElement.outerHTML;
+    
+//    var last_html = new XMLSerializer().serializeToString(document.documentElement);
+//    last_html = last_html.replace(/(&lt;)/g,"<").replace(/(&gt;)/g,">").replace(/(&amp;)/g,"&");
    // inst.sendBackgroundData(last_html)
+   
+//   var last_html = document.documentElement.outerHTML;
+
+   
+   var last_html = document.documentElement
+   
    
     inst.sendInitData(last_html);
     
