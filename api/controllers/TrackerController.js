@@ -36,6 +36,8 @@ module.exports = {
      */
     displayTracking: function (req, res) {
         var obj = Tracker.findOne({'tracker_id':req.param('tracker_id')}).exec(function (err, obj) {
+            res.set("Access-Control-Allow-Origin", "*");
+            
             return res.view('cursor_tracking/tracker_panel', {
                     tracker_id: req.param('tracker_id')
                 });

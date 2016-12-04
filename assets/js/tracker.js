@@ -115,14 +115,24 @@ Tracker.prototype.findFirsAndLastEventTime = function () {
  * dokleja canvas do srodka iframe
  */
 Tracker.prototype.initCanvasAndBackground = function (one_step) {
-    var inst = this;
-    var bckgr = $.parseHTML(one_step.background);
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(one_step.background, 'text/html');
     
+    var base = doc.createElement('base');
+    base.href = 'http://hiveware.ws';
+    doc.getElementsByTagName('head')[0].insertBefore(base, doc.getElementsByTagName('head')[0].firstChild)
+    
+    var inst = this;
+//    var bckgr = $.parseHTML(one_step.background);
+    var bckgr = new XMLSerializer().serializeToString(doc);// one_step.background;
+    
+    bckgr = bckgr.replace(/(&lt;)/g,"<").replace(/(&gt;)/g,">").replace(/(&amp;)/g,"&").replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, "");
+  
     this.background = window.frames['tracker-background'];
     this.background.document.open();
     this.background.document.write(bckgr);
     this.background.document.close();
-    
+//    this.background.document.appendChild(doc.documentElement)
     this.background_content = this.background.document;
     
     this.background.onload = function() {
@@ -144,6 +154,11 @@ Tracker.prototype.initCanvasAndBackground = function (one_step) {
         inst.tracker_cursor.style.background = 'url(http://127.0.0.1:1337/images/mouse_cursor_2.png)';
         inst.tracker_cursor.style['background-size'] = 'contain';
         inst.tracker_cursor.style['z-index'] = 2147483647;
+        
+        // add base
+//        var base = inst.background.document.createElement('base')
+//        base.href = 'http://hiveware.ws'
+//        inst.background.document.getElementsByTagName('head')[0].insertBefore(base, inst.background.document.getElementsByTagName('head')[0].firstChild)
 
         // append canvas and cursor to embed document
         inst.background.document.body.appendChild(inst.canvas);
@@ -166,11 +181,11 @@ Tracker.prototype.setCursorPosition = function () {
     this.ctx = this.canvas.getContext("2d");
     var t = this.time_temp;
     var i = 0;
-    while(this.trackData.move_data[t] === undefined || i<this.move_data_legth){ //console.log('!!!!: '+this.time_temp)
+    while(this.trackData.move_data[t] === undefined || i<this.move_data_legth){
         i++;
         t += 10;
     }
-    if(this.trackData.move_data[t]){ //console.log('CURSOR MOVED: '+t, this.trackData.move_data[t])
+    if(this.trackData.move_data[t]){
         this.ctx.beginPath();
         this.ctx.strokeStyle = "black";
         this.ctx.moveTo(this.trackData.move_data[t].x, this.trackData.move_data[t].y);
@@ -188,7 +203,6 @@ Tracker.prototype.runTimer = function (){
     
     this.events_timer = setInterval(function(){ 
         inst.time_temp = Math.round((Date.now() - inst.time_start) / 10) * 10;
-        // console.log('time_string: '+inst.time_temp)
         
         inst.mouseMoveEvent(inst.trackData.move_data[""+inst.time_temp]); 
         inst.scrollEvent(inst.trackData.scroll_data[""+inst.time_temp]); 
@@ -215,7 +229,6 @@ Tracker.prototype.backgroundEvent = function (one_step, t){
         clearInterval(this.events_timer);
         this.time_start = this.time_temp;
         setTimeout(function(){
-            //console.log('Podmianka HTMLa: '+t)
             inst.initCanvasAndBackground(one_step);
         }, 500);
           
